@@ -34,6 +34,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Renewable Smoothing Case Note](concepts/renewable-smoothing-case-note.md)
 
+- [Active Reactive Power Priority](concepts/active-reactive-power-priority.md)
+
 ## Repository Topics
 
 ```text
@@ -67,3 +69,4 @@ LICENSE
 - Add project-specific examples to the grid forming test scenario log.
 - Add project-specific examples to the resilience use case template.
 - Add project-specific examples to the renewable smoothing case note.
+- Add project-specific examples to the active reactive power priority.
