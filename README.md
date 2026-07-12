@@ -1,5 +1,7 @@
 # Smart Grid Storage Playbook
 
+[![Markdown maintenance](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml/badge.svg)](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml)
+
 Explainable smart-grid and grid-forming BESS concepts for engineers, students, and project teams.
 
 ## What This Covers
@@ -33,3 +35,10 @@ README.md
 CONTRIBUTING.md
 LICENSE
 ```
+
+## Contribution Entry Points
+
+- Add a storage dispatch concept page.
+- Add a weak-grid review checklist.
+- Add a grid-code evidence prompt.
+- Improve the BESS control-flow diagram notes.
