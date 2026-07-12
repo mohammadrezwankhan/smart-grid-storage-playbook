@@ -44,6 +44,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Grid Code Traceability Matrix](concepts/grid-code-traceability-matrix.md)
 
+- [Operator Control Room Handover](concepts/operator-control-room-handover.md)
+
 ## Repository Topics
 
 ```text
@@ -82,3 +84,4 @@ LICENSE
 - Add project-specific examples to the black start readiness prompts.
 - Add project-specific examples to the microgrid mode transition log.
 - Add project-specific examples to the grid code traceability matrix.
+- Add project-specific examples to the operator control room handover.
