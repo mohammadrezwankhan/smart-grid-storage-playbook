@@ -16,6 +16,7 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Storage dispatch basics](concepts/storage-dispatch-basics.md)
+- [Weak-grid storage review checklist](checklists/weak-grid-storage-review-checklist.md)
 - [Storage glossary](glossary/storage-glossary.md)
 - [BESS control flow](diagrams/bess-control-flow.md)
 
@@ -29,6 +30,7 @@ smart-grid grid-forming energy-storage renewable-integration power-systems bess 
 
 ```text
 concepts/
+checklists/
 diagrams/
 case-notes/
 glossary/
@@ -40,6 +42,6 @@ LICENSE
 ## Contribution Entry Points
 
 - Add a storage dispatch concept page.
-- Add a weak-grid review checklist.
+- Improve weak-grid review prompts with project examples.
 - Add a grid-code evidence prompt.
 - Improve the BESS control-flow diagram notes.
