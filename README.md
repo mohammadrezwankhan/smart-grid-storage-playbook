@@ -30,6 +30,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Grid Forming Test Scenario Log](concepts/grid-forming-test-scenario-log.md)
 
+- [Resilience Use Case Template](concepts/resilience-use-case-template.md)
+
 ## Repository Topics
 
 ```text
@@ -61,3 +63,4 @@ LICENSE
 - Add project-specific examples to the storage dispatch priority matrix.
 - Add project-specific examples to the interconnection review questions.
 - Add project-specific examples to the grid forming test scenario log.
+- Add project-specific examples to the resilience use case template.
