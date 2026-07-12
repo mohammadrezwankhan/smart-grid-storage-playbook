@@ -22,3 +22,11 @@
 | Protection trip | Automatic disconnection or stop triggered by a protection function | Should be mapped to cause, owner, reset logic, and event record. |
 | Point of interconnection | Electrical point where plant obligations are usually measured | Important for grid-code evidence and performance guarantees. |
 | Dispatch schedule | Planned sequence of charge, discharge, idle, or reserve behavior | Should respect SOC, availability, grid limits, and operating priorities. |
+| Virtual inertia | Control behavior that mimics inertial response to frequency changes | Often discussed for grid-forming inverter applications. |
+| Grid strength | Measure of how stiff or weak the grid is at the connection point | Commonly reviewed through short-circuit ratio or equivalent studies. |
+| Mode transition | Change between operating states such as grid-following, grid-forming, standby, or fault | Should be visible to operators and supported by control logic. |
+| Synchronization | Process of aligning voltage, frequency, and phase before connection or reconnection | Important when reconnecting to an energized grid or another source. |
+| Power sharing | Coordination of active or reactive power among multiple inverter resources | Needs control strategy and evidence when systems operate together. |
+| Black start | Ability to energize part of a system without an external grid supply | Requires auxiliary supply, sequencing, and load pickup evidence. |
+| Voltage reference | Control target or measured signal used to regulate voltage behavior | Central to understanding grid-forming claims. |
+| Frequency reference | Control target or measured signal used to regulate frequency behavior | Should be tied to operating mode and control hierarchy. |
