@@ -15,6 +15,7 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 ## Starter Pages
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
+- [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
 - [Storage dispatch basics](concepts/storage-dispatch-basics.md)
 - [Weak-grid storage review checklist](checklists/weak-grid-storage-review-checklist.md)
 - [Storage glossary](glossary/storage-glossary.md)
@@ -43,5 +44,5 @@ LICENSE
 
 - Add a storage dispatch concept page.
 - Improve weak-grid review prompts with project examples.
-- Add a grid-code evidence prompt.
+- Add project-specific examples to the grid-code evidence prompt.
 - Improve the BESS control-flow diagram notes.
