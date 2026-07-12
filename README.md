@@ -38,6 +38,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Protection Coordination Review](checklists/protection-coordination-review.md)
 
+- [Black Start Readiness Prompts](concepts/black-start-readiness-prompts.md)
+
 ## Repository Topics
 
 ```text
@@ -73,3 +75,4 @@ LICENSE
 - Add project-specific examples to the renewable smoothing case note.
 - Add project-specific examples to the active reactive power priority.
 - Add project-specific examples to the protection coordination review.
+- Add project-specific examples to the black start readiness prompts.
