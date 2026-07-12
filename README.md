@@ -60,6 +60,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Service Stacking Conflict Log](concepts/service-stacking-conflict-log.md)
 
+- [System Operator Query Log](concepts/system-operator-query-log.md)
+
 ## Repository Topics
 
 ```text
@@ -106,3 +108,4 @@ LICENSE
 - Add project-specific examples to the harmonic performance evidence.
 - Add project-specific examples to the availability performance template.
 - Add project-specific examples to the service stacking conflict log.
+- Add project-specific examples to the system operator query log.
