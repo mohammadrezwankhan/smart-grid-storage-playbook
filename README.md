@@ -42,6 +42,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Microgrid Mode Transition Log](concepts/microgrid-mode-transition-log.md)
 
+- [Grid Code Traceability Matrix](concepts/grid-code-traceability-matrix.md)
+
 ## Repository Topics
 
 ```text
@@ -79,3 +81,4 @@ LICENSE
 - Add project-specific examples to the protection coordination review.
 - Add project-specific examples to the black start readiness prompts.
 - Add project-specific examples to the microgrid mode transition log.
+- Add project-specific examples to the grid code traceability matrix.
