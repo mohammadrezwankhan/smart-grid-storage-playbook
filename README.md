@@ -28,6 +28,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Interconnection Review Questions](concepts/interconnection-review-questions.md)
 
+- [Grid Forming Test Scenario Log](concepts/grid-forming-test-scenario-log.md)
+
 ## Repository Topics
 
 ```text
@@ -58,3 +60,4 @@ LICENSE
 - Add project-specific examples to the grid service evidence checklist.
 - Add project-specific examples to the storage dispatch priority matrix.
 - Add project-specific examples to the interconnection review questions.
+- Add project-specific examples to the grid forming test scenario log.
