@@ -22,6 +22,7 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 - [Storage glossary](glossary/storage-glossary.md)
 - [BESS control flow](diagrams/bess-control-flow.md)
 - [Grid support service comparison](concepts/grid-support-service-comparison.md)
+- [Grid service evidence checklist](checklists/grid-service-evidence-checklist.md)
 
 ## Repository Topics
 
@@ -50,3 +51,4 @@ LICENSE
 - Improve the BESS control-flow diagram notes.
 - Add project-specific inverter mode transition examples.
 - Add project-specific grid support service examples.
+- Add project-specific examples to the grid service evidence checklist.
