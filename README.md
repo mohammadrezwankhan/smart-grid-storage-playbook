@@ -48,6 +48,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Event Log Review Guide](concepts/event-log-review-guide.md)
 
+- [Congestion Relief Dispatch Note](concepts/congestion-relief-dispatch-note.md)
+
 ## Repository Topics
 
 ```text
@@ -88,3 +90,4 @@ LICENSE
 - Add project-specific examples to the grid code traceability matrix.
 - Add project-specific examples to the operator control room handover.
 - Add project-specific examples to the event log review guide.
+- Add project-specific examples to the congestion relief dispatch note.
