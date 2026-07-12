@@ -50,6 +50,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Congestion Relief Dispatch Note](concepts/congestion-relief-dispatch-note.md)
 
+- [Market Service Assumption Register](concepts/market-service-assumption-register.md)
+
 ## Repository Topics
 
 ```text
@@ -91,3 +93,4 @@ LICENSE
 - Add project-specific examples to the operator control room handover.
 - Add project-specific examples to the event log review guide.
 - Add project-specific examples to the congestion relief dispatch note.
+- Add project-specific examples to the market service assumption register.
