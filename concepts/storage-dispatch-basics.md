@@ -38,3 +38,20 @@ A BESS is constrained by both power and energy:
 - What happens when dispatch conflicts with battery thermal limits?
 - How are unavailable capacity and derating communicated to operators?
 - Are dispatch records included in the evidence package for performance review?
+
+## Dispatch Review Questions
+
+Use these prompts in project reviews before accepting a dispatch strategy:
+
+| Topic | Review Question |
+|---|---|
+| SOC lower limit | What minimum SOC must remain available for warranty, backup, grid support, or emergency operation? |
+| SOC upper limit | Does the upper SOC limit protect battery life, leave room for charging events, or follow a grid-service rule? |
+| Reserve margin | What power or energy margin is intentionally held back from market or site optimization? |
+| Command ownership | Which system has final authority when EMS, SCADA, grid operator, and local controller commands conflict? |
+| Derating | How does the dispatch controller receive thermal, auxiliary, or equipment derating information? |
+| Ramp behavior | Are ramp-rate limits applied at the PCS, EMS, site meter, or point of interconnection? |
+| Availability | How are maintenance outages, rack faults, and partial-capacity operation reflected in dispatch targets? |
+| Event records | What logs prove the system followed a dispatch command and respected limits? |
+| Override logic | Who can override dispatch, and how is the override recorded for review? |
+| Recovery | After a contingency event, what rule restores SOC, reserve margin, and normal dispatch mode? |
