@@ -58,6 +58,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Availability Performance Template](concepts/availability-performance-template.md)
 
+- [Service Stacking Conflict Log](concepts/service-stacking-conflict-log.md)
+
 ## Repository Topics
 
 ```text
@@ -103,3 +105,4 @@ LICENSE
 - Add project-specific examples to the islanding risk review checklist.
 - Add project-specific examples to the harmonic performance evidence.
 - Add project-specific examples to the availability performance template.
+- Add project-specific examples to the service stacking conflict log.
