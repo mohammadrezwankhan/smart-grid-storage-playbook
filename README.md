@@ -54,6 +54,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Islanding Risk Review Checklist](checklists/islanding-risk-review-checklist.md)
 
+- [Harmonic Performance Evidence](concepts/harmonic-performance-evidence.md)
+
 ## Repository Topics
 
 ```text
@@ -97,3 +99,4 @@ LICENSE
 - Add project-specific examples to the congestion relief dispatch note.
 - Add project-specific examples to the market service assumption register.
 - Add project-specific examples to the islanding risk review checklist.
+- Add project-specific examples to the harmonic performance evidence.
