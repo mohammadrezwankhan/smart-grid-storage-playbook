@@ -10,6 +10,12 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 - Renewable integration scenarios.
 - Technical diagrams and plain-English explainers.
 
+## Starter Pages
+
+- [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
+- [Storage glossary](glossary/storage-glossary.md)
+- [BESS control flow](diagrams/bess-control-flow.md)
+
 ## Repository Topics
 
 ```text
