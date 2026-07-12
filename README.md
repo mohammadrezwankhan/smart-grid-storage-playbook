@@ -52,6 +52,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Market Service Assumption Register](concepts/market-service-assumption-register.md)
 
+- [Islanding Risk Review Checklist](checklists/islanding-risk-review-checklist.md)
+
 ## Repository Topics
 
 ```text
@@ -94,3 +96,4 @@ LICENSE
 - Add project-specific examples to the event log review guide.
 - Add project-specific examples to the congestion relief dispatch note.
 - Add project-specific examples to the market service assumption register.
+- Add project-specific examples to the islanding risk review checklist.
