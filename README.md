@@ -62,6 +62,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [System Operator Query Log](concepts/system-operator-query-log.md)
 
+- [Playbook Next Research Questions](concepts/playbook-next-research-questions.md)
+
 ## Repository Topics
 
 ```text
@@ -109,3 +111,4 @@ LICENSE
 - Add project-specific examples to the availability performance template.
 - Add project-specific examples to the service stacking conflict log.
 - Add project-specific examples to the system operator query log.
+- Add project-specific examples to the playbook next research questions.
