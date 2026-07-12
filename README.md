@@ -46,6 +46,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Operator Control Room Handover](concepts/operator-control-room-handover.md)
 
+- [Event Log Review Guide](concepts/event-log-review-guide.md)
+
 ## Repository Topics
 
 ```text
@@ -85,3 +87,4 @@ LICENSE
 - Add project-specific examples to the microgrid mode transition log.
 - Add project-specific examples to the grid code traceability matrix.
 - Add project-specific examples to the operator control room handover.
+- Add project-specific examples to the event log review guide.
