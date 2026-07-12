@@ -32,6 +32,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Resilience Use Case Template](concepts/resilience-use-case-template.md)
 
+- [Renewable Smoothing Case Note](concepts/renewable-smoothing-case-note.md)
+
 ## Repository Topics
 
 ```text
@@ -64,3 +66,4 @@ LICENSE
 - Add project-specific examples to the interconnection review questions.
 - Add project-specific examples to the grid forming test scenario log.
 - Add project-specific examples to the resilience use case template.
+- Add project-specific examples to the renewable smoothing case note.
