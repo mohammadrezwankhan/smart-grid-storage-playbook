@@ -56,6 +56,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Harmonic Performance Evidence](concepts/harmonic-performance-evidence.md)
 
+- [Availability Performance Template](concepts/availability-performance-template.md)
+
 ## Repository Topics
 
 ```text
@@ -100,3 +102,4 @@ LICENSE
 - Add project-specific examples to the market service assumption register.
 - Add project-specific examples to the islanding risk review checklist.
 - Add project-specific examples to the harmonic performance evidence.
+- Add project-specific examples to the availability performance template.
