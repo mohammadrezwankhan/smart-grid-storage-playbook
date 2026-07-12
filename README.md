@@ -24,6 +24,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 - [Grid support service comparison](concepts/grid-support-service-comparison.md)
 - [Grid service evidence checklist](checklists/grid-service-evidence-checklist.md)
 
+- [Storage Dispatch Priority Matrix](concepts/storage-dispatch-priority-matrix.md)
+
 ## Repository Topics
 
 ```text
@@ -52,3 +54,4 @@ LICENSE
 - Add project-specific inverter mode transition examples.
 - Add project-specific grid support service examples.
 - Add project-specific examples to the grid service evidence checklist.
+- Add project-specific examples to the storage dispatch priority matrix.
