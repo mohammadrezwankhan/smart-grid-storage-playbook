@@ -40,6 +40,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 
 - [Black Start Readiness Prompts](concepts/black-start-readiness-prompts.md)
 
+- [Microgrid Mode Transition Log](concepts/microgrid-mode-transition-log.md)
+
 ## Repository Topics
 
 ```text
@@ -76,3 +78,4 @@ LICENSE
 - Add project-specific examples to the active reactive power priority.
 - Add project-specific examples to the protection coordination review.
 - Add project-specific examples to the black start readiness prompts.
+- Add project-specific examples to the microgrid mode transition log.
