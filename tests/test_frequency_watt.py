@@ -10,6 +10,7 @@ from models.frequency_watt import (
     dispatch_frequency_watt,
     main,
 )
+from models.energy_limits import EnergyBoundary, StorageEnergyState
 from models.pq_capability import PowerPriority
 
 
@@ -70,6 +71,81 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertAlmostEqual(result.capability.active_mw, 60.0)
         self.assertAlmostEqual(result.capability.reactive_mvar, 80.0)
 
+    def test_energy_limit_preserves_soc_before_pq_allocation(self):
+        energy_state = StorageEnergyState(
+            energy_capacity_mwh=100.0,
+            initial_soc=0.25,
+            minimum_soc=0.20,
+            discharge_efficiency=0.90,
+        )
+        result = dispatch_frequency_watt(
+            49.725,
+            20.0,
+            80.0,
+            100.0,
+            energy_state=energy_state,
+            duration_minutes=15.0,
+        )
+        self.assertAlmostEqual(result.power_bounded_active_mw, 70.0)
+        self.assertAlmostEqual(result.bounded_active_mw, 18.0)
+        self.assertIsNotNone(result.energy)
+        assert result.energy is not None
+        self.assertTrue(result.energy.energy_limited)
+        self.assertIs(
+            result.energy.limiting_boundary,
+            EnergyBoundary.MINIMUM_SOC,
+        )
+        self.assertAlmostEqual(result.energy.ending_soc, 0.20)
+        self.assertIsNotNone(result.delivered_energy)
+        assert result.delivered_energy is not None
+        self.assertAlmostEqual(result.delivered_energy.ending_soc, 0.20)
+        self.assertAlmostEqual(result.capability.active_mw, 18.0)
+        self.assertAlmostEqual(result.capability.reactive_mvar, 80.0)
+        self.assertFalse(result.capability.limited)
+
+    def test_delivered_soc_accounts_for_pq_active_power_curtailment(self):
+        energy_state = StorageEnergyState(
+            energy_capacity_mwh=100.0,
+            initial_soc=0.90,
+            minimum_soc=0.10,
+            discharge_efficiency=1.0,
+        )
+        result = dispatch_frequency_watt(
+            49.725,
+            20.0,
+            80.0,
+            100.0,
+            priority=PowerPriority.REACTIVE,
+            energy_state=energy_state,
+            duration_minutes=60.0,
+        )
+        self.assertIsNotNone(result.energy)
+        self.assertIsNotNone(result.delivered_energy)
+        assert result.energy is not None
+        assert result.delivered_energy is not None
+        self.assertAlmostEqual(result.energy.ending_soc, 0.20)
+        self.assertAlmostEqual(result.capability.active_mw, 60.0)
+        self.assertAlmostEqual(result.delivered_energy.ending_soc, 0.30)
+
+    def test_energy_state_and_duration_must_be_provided_together(self):
+        state = StorageEnergyState(100.0, 0.5)
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                energy_state=state,
+            )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                duration_minutes=15.0,
+            )
+
     def test_operating_sweep_respects_storage_and_capability_limits(self):
         for frequency_hz in (49.0, 49.725, 50.0, 50.275, 51.0):
             for baseline_active_mw in (-120.0, 0.0, 120.0):
@@ -114,6 +190,51 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Droop adjustment: 50.000 MW", output)
         self.assertIn("Capability limited: true", output)
         self.assertIn("Delivered active power: 70.000 MW", output)
+
+    def test_cli_reports_soc_limited_frequency_response(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "49.725",
+                    "--baseline-active-mw",
+                    "20",
+                    "--reactive-mvar",
+                    "80",
+                    "--limit-mva",
+                    "100",
+                    "--duration-minutes",
+                    "15",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.25",
+                    "--minimum-soc",
+                    "0.2",
+                    "--discharge-efficiency",
+                    "0.9",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Storage-bounded active request: 18.000 MW", output)
+        self.assertIn("Energy limited: true", output)
+        self.assertIn("Energy limiting boundary: minimum_soc", output)
+        self.assertIn("Ending SOC: 0.2000", output)
+
+    def test_cli_rejects_partial_energy_configuration(self):
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            main(
+                [
+                    "--frequency-hz",
+                    "50",
+                    "--limit-mva",
+                    "100",
+                    "--minimum-soc",
+                    "0.2",
+                ]
+            )
 
 
 if __name__ == "__main__":
