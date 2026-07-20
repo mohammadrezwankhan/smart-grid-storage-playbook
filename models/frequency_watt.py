@@ -6,6 +6,19 @@ from dataclasses import dataclass
 from typing import Sequence
 
 try:
+    from models.energy_limits import (
+        EnergyLimitedDispatch,
+        StorageEnergyState,
+        limit_active_power_by_energy,
+    )
+except ModuleNotFoundError:
+    from energy_limits import (
+        EnergyLimitedDispatch,
+        StorageEnergyState,
+        limit_active_power_by_energy,
+    )
+
+try:
     from models.pq_capability import (
         CapabilityResult,
         PowerPriority,
@@ -75,8 +88,11 @@ class FrequencyWattDispatch:
     baseline_active_mw: float
     droop_adjustment_mw: float
     unconstrained_active_mw: float
+    power_bounded_active_mw: float
     bounded_active_mw: float
     storage_power_limited: bool
+    energy: EnergyLimitedDispatch | None
+    delivered_energy: EnergyLimitedDispatch | None
     capability: CapabilityResult
 
 
@@ -87,37 +103,60 @@ def dispatch_frequency_watt(
     apparent_power_limit_mva: float,
     curve: FrequencyWattCurve = FrequencyWattCurve(),
     priority: PowerPriority | str = PowerPriority.ACTIVE,
+    energy_state: StorageEnergyState | None = None,
+    duration_minutes: float | None = None,
 ) -> FrequencyWattDispatch:
-    """Evaluate frequency-watt response and enforce power and P-Q limits."""
+    """Evaluate frequency response with optional interval energy enforcement."""
 
     if not math.isfinite(baseline_active_mw):
         raise ValueError("baseline_active_mw must be finite")
 
     adjustment_mw = curve.active_adjustment_mw(frequency_hz)
     unconstrained_active_mw = baseline_active_mw + adjustment_mw
-    bounded_active_mw = max(
+    power_bounded_active_mw = max(
         -curve.max_charge_mw,
         min(curve.max_discharge_mw, unconstrained_active_mw),
     )
     storage_power_limited = not math.isclose(
         unconstrained_active_mw,
-        bounded_active_mw,
+        power_bounded_active_mw,
         rel_tol=0.0,
         abs_tol=1e-12,
     )
+    if (energy_state is None) != (duration_minutes is None):
+        raise ValueError("energy_state and duration_minutes must be provided together")
+    energy = None
+    bounded_active_mw = power_bounded_active_mw
+    if energy_state is not None and duration_minutes is not None:
+        energy = limit_active_power_by_energy(
+            power_bounded_active_mw,
+            duration_minutes,
+            energy_state,
+        )
+        bounded_active_mw = energy.delivered_active_mw
     capability = allocate_power(
         bounded_active_mw,
         reactive_power_mvar,
         apparent_power_limit_mva,
         priority,
     )
+    delivered_energy = None
+    if energy_state is not None and duration_minutes is not None:
+        delivered_energy = limit_active_power_by_energy(
+            capability.active_mw,
+            duration_minutes,
+            energy_state,
+        )
     return FrequencyWattDispatch(
         frequency_hz=frequency_hz,
         baseline_active_mw=baseline_active_mw,
         droop_adjustment_mw=adjustment_mw,
         unconstrained_active_mw=unconstrained_active_mw,
+        power_bounded_active_mw=power_bounded_active_mw,
         bounded_active_mw=bounded_active_mw,
         storage_power_limited=storage_power_limited,
+        energy=energy,
+        delivered_energy=delivered_energy,
         capability=capability,
     )
 
@@ -140,6 +179,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full-response-deviation-hz", type=float, default=0.50)
     parser.add_argument("--max-discharge-mw", type=float, default=100.0)
     parser.add_argument("--max-charge-mw", type=float, default=100.0)
+    parser.add_argument("--duration-minutes", type=float)
+    parser.add_argument("--energy-capacity-mwh", type=float)
+    parser.add_argument("--initial-soc", type=float)
+    parser.add_argument("--minimum-soc", type=float)
+    parser.add_argument("--maximum-soc", type=float)
+    parser.add_argument("--charge-efficiency", type=float)
+    parser.add_argument("--discharge-efficiency", type=float)
     return parser.parse_args(argv)
 
 
@@ -152,6 +198,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         max_discharge_mw=args.max_discharge_mw,
         max_charge_mw=args.max_charge_mw,
     )
+    energy_inputs = (
+        args.duration_minutes,
+        args.energy_capacity_mwh,
+        args.initial_soc,
+        args.minimum_soc,
+        args.maximum_soc,
+        args.charge_efficiency,
+        args.discharge_efficiency,
+    )
+    required_energy_inputs = (
+        args.duration_minutes,
+        args.energy_capacity_mwh,
+        args.initial_soc,
+    )
+    if any(value is not None for value in energy_inputs) and not all(
+        value is not None for value in required_energy_inputs
+    ):
+        raise ValueError(
+            "duration_minutes, energy_capacity_mwh, and initial_soc "
+            "must be provided together"
+        )
+    energy_state = None
+    if args.energy_capacity_mwh is not None and args.initial_soc is not None:
+        energy_state = StorageEnergyState(
+            energy_capacity_mwh=args.energy_capacity_mwh,
+            initial_soc=args.initial_soc,
+            minimum_soc=0.10 if args.minimum_soc is None else args.minimum_soc,
+            maximum_soc=0.90 if args.maximum_soc is None else args.maximum_soc,
+            charge_efficiency=(
+                0.95 if args.charge_efficiency is None else args.charge_efficiency
+            ),
+            discharge_efficiency=(
+                0.95 if args.discharge_efficiency is None else args.discharge_efficiency
+            ),
+        )
     result = dispatch_frequency_watt(
         frequency_hz=args.frequency_hz,
         baseline_active_mw=args.baseline_active_mw,
@@ -159,13 +240,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         apparent_power_limit_mva=args.limit_mva,
         curve=curve,
         priority=args.priority,
+        energy_state=energy_state,
+        duration_minutes=args.duration_minutes,
     )
     capability = result.capability
     print(f"Frequency: {result.frequency_hz:.3f} Hz")
     print(f"Droop adjustment: {result.droop_adjustment_mw:.3f} MW")
     print(f"Unconstrained active request: {result.unconstrained_active_mw:.3f} MW")
+    if result.energy is not None:
+        print(f"Power-bounded active request: {result.power_bounded_active_mw:.3f} MW")
     print(f"Storage-bounded active request: {result.bounded_active_mw:.3f} MW")
     print(f"Storage power limited: {str(result.storage_power_limited).lower()}")
+    if result.energy is not None:
+        boundary = (
+            "none"
+            if result.energy.limiting_boundary is None
+            else result.energy.limiting_boundary.value
+        )
+        print(f"Energy limited: {str(result.energy.energy_limited).lower()}")
+        print(f"Energy limiting boundary: {boundary}")
+        assert result.delivered_energy is not None
+        print(f"Ending SOC: {result.delivered_energy.ending_soc:.4f}")
     print(f"Capability priority: {capability.priority.value}")
     print(f"Capability limited: {str(capability.limited).lower()}")
     print(f"Delivered active power: {capability.active_mw:.3f} MW")

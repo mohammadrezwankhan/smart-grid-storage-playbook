@@ -49,8 +49,9 @@ python -m unittest discover -s tests -v
 ## Explicit Limitations
 
 - The capability boundary is a fixed circle rather than a manufacturer curve.
-- Dynamic current limits, voltage dependence, temperature derating, SOC, and
-  duration limits are excluded.
+- Dynamic current limits, voltage dependence, and temperature derating are
+  excluded. SOC and interval-duration limits can be composed through
+  `energy_limits.py`, but are not inherent to the P-Q allocator.
 - The allocator is static and does not model control-loop response.
 - Grid-code, protection, and plant-controller constraints remain project
   inputs.
@@ -133,7 +134,45 @@ Delivered reactive power: 71.414 MVAr
 ```
 
 The model is static. It excludes frequency measurement filtering, control-loop
-dynamics, ramp-rate limits, state of charge, reserve availability, response
-duration, recovery logic, and interactions with plant-level dispatch. Replace
-the nominal frequency, breakpoints, power limits, baseline, and P-Q priority
-with project-controlled values before engineering use.
+dynamics, ramp-rate limits, recovery logic, and interactions with plant-level
+dispatch. Optional energy arguments enforce SOC reserve, response duration, and
+charge/discharge efficiency before P-Q allocation. Replace every frequency,
+power, energy, efficiency, baseline, and priority assumption with
+project-controlled values before engineering use.
+
+## SOC And Response-Duration Limits
+
+[`energy_limits.py`](energy_limits.py) converts SOC headroom into the maximum
+constant AC charge or discharge power that can be sustained for one interval.
+Positive active power discharges the battery; negative active power charges it.
+Discharge efficiency increases the stored energy consumed per delivered MWh,
+while charge efficiency reduces the stored energy gained per imported MWh.
+
+Run a 60-minute discharge request that reaches a 20% minimum SOC boundary:
+
+```powershell
+python models/energy_limits.py `
+  --active-mw 100 --duration-minutes 60 `
+  --energy-capacity-mwh 50 --initial-soc 0.50 `
+  --minimum-soc 0.20 --discharge-efficiency 0.90
+```
+
+Expected key values:
+
+```text
+Delivered active power: 13.500 MW
+Energy limited: true
+Limiting boundary: minimum_soc
+Ending SOC: 0.2000
+```
+
+The same inputs can be added to `frequency_watt.py`; energy limiting is applied
+after the frequency response and instantaneous storage power bound, but before
+the P-Q capability allocator. This sequencing makes both energy curtailment and
+inverter curtailment visible. The returned `energy` result describes the
+energy-bounded request, while `delivered_energy` recomputes ending SOC from the
+active power that remains after P-Q allocation.
+
+This is a single-interval energy accounting reference. It does not model
+self-discharge, auxiliary load, nonlinear efficiency, degradation, thermal
+derating, uncertain capacity, multi-interval scheduling, or SOC recovery.

@@ -18,6 +18,7 @@ and project teams.
 - [Executable active/reactive capability reference](models/README.md)
 - [Executable Volt-VAR dispatch reference](models/README.md#volt-var-dispatch-reference)
 - [Executable frequency-watt dispatch reference](models/README.md#frequency-watt-dispatch-reference)
+- [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
@@ -102,6 +103,10 @@ python models/volt_var.py `
 python models/frequency_watt.py `
   --frequency-hz 49.725 --baseline-active-mw 20 `
   --reactive-mvar 80 --limit-mva 100
+python models/energy_limits.py `
+  --active-mw 100 --duration-minutes 60 `
+  --energy-capacity-mwh 50 --initial-soc 0.50 `
+  --minimum-soc 0.20 --discharge-efficiency 0.90
 python -m unittest discover -s tests -v
 ```
 
