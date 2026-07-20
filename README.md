@@ -16,6 +16,7 @@ and project teams.
 ## Starter Pages
 
 - [Executable active/reactive capability reference](models/README.md)
+- [Executable Volt-VAR dispatch reference](models/README.md#volt-var-dispatch-reference)
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
@@ -95,6 +96,8 @@ and proportional handling of commands outside a circular MVA limit:
 ```powershell
 python models/pq_capability.py `
   --active-mw 80 --reactive-mvar 80 --limit-mva 100 --priority active
+python models/volt_var.py `
+  --voltage-pu 0.95 --active-mw 90 --limit-mva 100
 python -m unittest discover -s tests -v
 ```
 
