@@ -55,3 +55,46 @@ python -m unittest discover -s tests -v
 - Grid-code, protection, and plant-controller constraints remain project
   inputs.
 - Sign conventions must be aligned with the target EMS, PCS, and study model.
+
+## Volt-VAR Dispatch Reference
+
+[`volt_var.py`](volt_var.py) adds an illustrative four-breakpoint voltage
+support curve and sends its reactive-power request through the circular P-Q
+allocator. Positive reactive power means injection at low voltage; negative
+reactive power means absorption at high voltage.
+
+The default breakpoints are configurable educational values, not a claim about
+any grid code, inverter setting, or interconnection agreement:
+
+| Region | Default Behavior |
+| --- | --- |
+| `V <= 0.92 pu` | Saturate at `+1.0 pu` reactive request. |
+| `0.92 < V < 0.98 pu` | Ramp linearly from injection to zero. |
+| `0.98 <= V <= 1.02 pu` | Hold a zero-reactive-power deadband. |
+| `1.02 < V < 1.08 pu` | Ramp linearly from zero to absorption. |
+| `V >= 1.08 pu` | Saturate at `-1.0 pu` reactive request. |
+
+Run a low-voltage case where reactive-priority dispatch reduces active power to
+stay inside a 100 MVA limit:
+
+```powershell
+python models/volt_var.py `
+  --voltage-pu 0.95 `
+  --active-mw 90 `
+  --limit-mva 100
+```
+
+Expected key values:
+
+```text
+Volt-VAR request: 0.500 pu
+Requested reactive power: 50.000 MVAr
+Capability limited: true
+Delivered active power: 86.603 MW
+Delivered reactive power: 50.000 MVAr
+```
+
+Use `--priority active` to study the competing policy that preserves active
+power and curtails the reactive request instead. Replace all breakpoints,
+reactive base, priority, and capability assumptions with project-controlled
+settings before engineering use.
