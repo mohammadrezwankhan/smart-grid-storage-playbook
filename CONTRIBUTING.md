@@ -17,3 +17,4 @@ teach, or reuse.
 - [ ] Diagrams include alt text or descriptions.
 - [ ] Sources are public.
 - [ ] `python -m unittest discover -s tests -v` passes for model changes.
+- [ ] Control breakpoints and sign conventions are documented.
