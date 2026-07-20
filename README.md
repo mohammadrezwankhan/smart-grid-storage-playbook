@@ -1,8 +1,9 @@
 # Smart Grid Storage Playbook
 
-[![Markdown maintenance](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml/badge.svg)](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml)
+[![Model and Markdown validation](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml/badge.svg)](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml)
 
-Explainable smart-grid and grid-forming BESS concepts for engineers, students, and project teams.
+Explainable smart-grid and grid-forming BESS concepts for engineers, students,
+and project teams.
 
 ## What This Covers
 
@@ -13,6 +14,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 - Technical diagrams and plain-English explainers.
 
 ## Starter Pages
+
+- [Executable active/reactive capability reference](models/README.md)
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
@@ -67,7 +70,8 @@ Explainable smart-grid and grid-forming BESS concepts for engineers, students, a
 ## Repository Topics
 
 ```text
-smart-grid grid-forming energy-storage renewable-integration power-systems bess technical-writing
+smart-grid grid-forming energy-storage renewable-integration
+power-systems bess technical-writing
 ```
 
 ## Planned Sections
@@ -82,6 +86,20 @@ README.md
 CONTRIBUTING.md
 LICENSE
 ```
+
+## Run The Executable Reference
+
+The dependency-free allocator demonstrates active-priority, reactive-priority,
+and proportional handling of commands outside a circular MVA limit:
+
+```powershell
+python models/pq_capability.py `
+  --active-mw 80 --reactive-mvar 80 --limit-mva 100 --priority active
+python -m unittest discover -s tests -v
+```
+
+Review the [model assumptions and limitations](models/README.md) before mapping
+the result to a plant controller, PCS capability curve, or grid-code study.
 
 ## Contribution Entry Points
 
