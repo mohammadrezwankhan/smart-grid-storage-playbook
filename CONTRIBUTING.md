@@ -1,6 +1,7 @@
 # Contributing
 
-Contributions should make smart-grid and storage concepts easier to inspect, teach, or reuse.
+Contributions should make smart-grid and storage concepts easier to inspect,
+teach, or reuse.
 
 ## Good Contributions
 
@@ -15,3 +16,4 @@ Contributions should make smart-grid and storage concepts easier to inspect, tea
 - [ ] Acronyms are defined.
 - [ ] Diagrams include alt text or descriptions.
 - [ ] Sources are public.
+- [ ] `python -m unittest discover -s tests -v` passes for model changes.
