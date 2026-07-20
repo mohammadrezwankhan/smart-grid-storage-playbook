@@ -1,6 +1,12 @@
+<!-- markdownlint-disable MD013 MD060 -->
+
 # Storage Dispatch Basics
 
 Storage dispatch is the decision process for when a battery energy storage system charges, discharges, holds reserve, or stays idle.
+
+The [executable SOC and response-duration reference](../models/README.md#soc-and-response-duration-limits)
+shows how these concepts bound one constant-power interval before inverter
+active/reactive capability is applied.
 
 ## Core Idea
 
