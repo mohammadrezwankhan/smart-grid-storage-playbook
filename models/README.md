@@ -98,3 +98,42 @@ Use `--priority active` to study the competing policy that preserves active
 power and curtails the reactive request instead. Replace all breakpoints,
 reactive base, priority, and capability assumptions with project-controlled
 settings before engineering use.
+
+## Frequency-Watt Dispatch Reference
+
+[`frequency_watt.py`](frequency_watt.py) adds an illustrative frequency
+deadband, linear droop region, charge/discharge saturation, baseline schedule,
+and circular P-Q capability enforcement. Positive active power means discharge
+and injection into the grid; negative active power means charging. Below the
+lower deadband boundary, the controller increases injection. Above the upper
+deadband boundary, it reduces injection and can request charging.
+
+The defaults assume a 50 Hz system, a `+/-0.05 Hz` deadband, and full response
+at a `+/-0.50 Hz` deviation. These values are educational examples, not
+grid-code or plant settings.
+
+Run an under-frequency case with a 20 MW baseline export and an 80 MVAr request:
+
+```powershell
+python models/frequency_watt.py `
+  --frequency-hz 49.725 `
+  --baseline-active-mw 20 `
+  --reactive-mvar 80 `
+  --limit-mva 100
+```
+
+Expected key values with the default active-power priority:
+
+```text
+Droop adjustment: 50.000 MW
+Storage-bounded active request: 70.000 MW
+Capability limited: true
+Delivered active power: 70.000 MW
+Delivered reactive power: 71.414 MVAr
+```
+
+The model is static. It excludes frequency measurement filtering, control-loop
+dynamics, ramp-rate limits, state of charge, reserve availability, response
+duration, recovery logic, and interactions with plant-level dispatch. Replace
+the nominal frequency, breakpoints, power limits, baseline, and P-Q priority
+with project-controlled values before engineering use.
