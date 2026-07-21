@@ -178,7 +178,13 @@ def limit_active_power_by_energy(
         if self_discharge_energy_mwh < -1e-12:
             raise RuntimeError("self-discharge energy must be nonnegative")
         self_discharge_energy_mwh = max(0.0, self_discharge_energy_mwh)
-    ending_soc = ending_energy_mwh / state.energy_capacity_mwh
+    ending_soc = min(
+        state.maximum_soc,
+        max(
+            state.minimum_soc,
+            ending_energy_mwh / state.energy_capacity_mwh,
+        ),
+    )
     energy_limited = not math.isclose(
         delivered_active_mw,
         requested_active_mw,
