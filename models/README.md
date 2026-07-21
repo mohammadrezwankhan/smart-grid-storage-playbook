@@ -1,8 +1,9 @@
 # Active/Reactive Capability Reference
 
 This dependency-free Python example makes constrained active/reactive power
-priority explicit. It applies a circular inverter capability limit and reports
-the delivered command, curtailed command, apparent power, and utilization.
+priority explicit. It applies either a circular inverter capability limit or a
+sampled piecewise envelope and reports the delivered command, curtailed
+command, apparent power, and utilization.
 
 ## Capability Rule
 
@@ -20,6 +21,11 @@ follows:
 - `reactive`: preserve reactive power first and use remaining headroom for
   active power; or
 - `proportional`: scale active and reactive power by the same factor.
+
+The optional CSV envelope samples the positive-quadrant boundary as strictly
+increasing active power and strictly decreasing reactive limit. The loader
+requires reactive-axis and active-axis endpoints plus a concave piecewise-linear
+shape. Allocation mirrors that boundary into all four quadrants.
 
 ## Run A Constrained Example
 
@@ -40,6 +46,25 @@ Apparent power: 100.000 MVA
 Capability utilization: 100.00%
 ```
 
+Run the committed noncircular example with the same priority policies:
+
+```powershell
+python models/pq_capability.py `
+  --active-mw 80 `
+  --reactive-mvar 80 `
+  --curve-csv models/data/illustrative_capability_curve.csv `
+  --priority active
+```
+
+The sampled boundary limits the 80 MW request to 50 MVAr:
+
+```text
+Capability model: piecewise curve (4 points)
+Active power: 80.000 MW
+Reactive power: 50.000 MVAr
+Capability utilization: 100.00%
+```
+
 Run the regression checks with:
 
 ```powershell
@@ -48,10 +73,14 @@ python -m unittest discover -s tests -v
 
 ## Explicit Limitations
 
-- The capability boundary is a fixed circle rather than a manufacturer curve.
+- The sampled curve is quadrant-symmetric, concave, and linearly interpolated.
+  Use separate project logic for asymmetric charge/discharge or reactive
+  injection/absorption limits.
 - Dynamic current limits, voltage dependence, and temperature derating are
-  excluded. SOC and interval-duration limits can be composed through
-  `energy_limits.py`, but are not inherent to the P-Q allocator.
+  not calculated internally. They can be represented only after an external
+  study supplies the applicable sampled envelope. SOC and interval-duration
+  limits can be composed through `energy_limits.py`, but are not inherent to
+  the P-Q allocator.
 - The allocator is static and does not model control-loop response.
 - Grid-code, protection, and plant-controller constraints remain project
   inputs.

@@ -6,6 +6,7 @@ on:
     paths:
       - "**.md"
       - "**.py"
+      - "models/**/*.csv"
       - ".github/workflows/markdown-maintenance.yml"
   push:
     branches:
@@ -13,6 +14,7 @@ on:
     paths:
       - "**.md"
       - "**.py"
+      - "models/**/*.csv"
       - ".github/workflows/markdown-maintenance.yml"
 
 permissions:
@@ -32,6 +34,13 @@ jobs:
 
       - name: Test executable models
         run: python -m unittest discover -s tests -v
+
+      - name: Run sampled capability envelope
+        run: >-
+          python models/pq_capability.py
+          --active-mw 80 --reactive-mvar 80
+          --curve-csv models/data/illustrative_capability_curve.csv
+          --priority active
 
       - name: Check Markdown links
         uses: lycheeverse/lychee-action@v2
