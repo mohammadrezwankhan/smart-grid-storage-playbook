@@ -22,6 +22,7 @@ and project teams.
 - [Executable active-power ramp limits](models/README.md#active-power-ramp-limits)
 - [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
 - [Executable multi-interval energy trajectory](models/README.md#multi-interval-energy-trajectory)
+- [Executable multi-service grid-support sequence](models/README.md#multi-service-grid-support-sequence)
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
@@ -122,6 +123,14 @@ python models/energy_sequence.py `
   --energy-capacity-mwh 100 --initial-soc 0.50 `
   --minimum-soc 0.20 --charge-efficiency 0.80 `
   --discharge-efficiency 1.00
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 50,49.5,50.5 `
+  --voltage-pu-profile 1,0.92,1.08 `
+  --baseline-active-mw-profile 20,20,20 `
+  --duration-minutes-profile 15,15,15 `
+  --limit-mva 100 --energy-capacity-mwh 100 `
+  --initial-soc 0.50 --minimum-soc 0.20 `
+  --charge-efficiency 1 --discharge-efficiency 1
 python -m unittest discover -s tests -v
 ```
 
