@@ -398,7 +398,7 @@ The terminology follows Sandia's distinction between
 [standby energy loss and self-discharge](https://www.osti.gov/servlets/purl/1368468).
 An NREL field study also shows why auxiliary demand must be treated as a stated
 project assumption: measured pump consumption changed with active power and
-SOC in its [utility-scale flow-battery demonstration](https://docs.nrel.gov/docs/fy18osti/71545.pdf).
+SOC in its [utility-scale flow-battery demonstration](https://www.osti.gov/biblio/1464729).
 
 This reference deliberately uses one constant auxiliary load and one constant
 self-discharge rate. It assumes the storage medium supplies the auxiliary
