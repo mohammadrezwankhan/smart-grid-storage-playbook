@@ -22,10 +22,12 @@ follows:
   active power; or
 - `proportional`: scale active and reactive power by the same factor.
 
-The optional CSV envelope samples the positive-quadrant boundary as strictly
+The symmetric CSV envelope samples the positive-quadrant boundary as strictly
 increasing active power and strictly decreasing reactive limit. The loader
 requires reactive-axis and active-axis endpoints plus a concave piecewise-linear
-shape. Allocation mirrors that boundary into all four quadrants.
+shape. Allocation mirrors that boundary into all four quadrants. A directional
+CSV may instead provide separate discharge/injection, discharge/absorption,
+charge/injection, and charge/absorption curves.
 
 ## Run A Constrained Example
 
@@ -65,6 +67,53 @@ Reactive power: 50.000 MVAr
 Capability utilization: 100.00%
 ```
 
+## Directional Four-Quadrant Envelope
+
+Use `--directional-curve-csv` when charge and discharge capability or reactive
+injection and absorption capability differ. The strict CSV groups four curves
+by these exact quadrant identifiers:
+
+- `discharge_injection`
+- `discharge_absorption`
+- `charge_injection`
+- `charge_absorption`
+
+Each group uses nonnegative magnitudes and follows the same increasing-active,
+decreasing-reactive, concave shape contract as the symmetric curve. Curves on
+either side of an axis must share that axis intercept: both discharge curves
+must have the same active limit, both charge curves must have the same active
+limit, and the corresponding charge/discharge curves must agree on injection
+or absorption limits at zero active power. This makes commands on an axis
+independent of an arbitrary quadrant choice.
+
+Run the committed charge-and-absorption example:
+
+```powershell
+python models/pq_capability.py `
+  --active-mw -65 `
+  --reactive-mvar -70 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv `
+  --priority active
+```
+
+Expected key values:
+
+```text
+Capability model: directional envelope (4 quadrants, 16 points)
+Capability quadrant: charge_absorption
+Active power: -65.000 MW
+Reactive power: -40.000 MVAr
+Capability utilization: 100.00%
+```
+
+The example deliberately limits charging to 80 MW, discharge to 100 MW,
+reactive injection to 100 MVAr, and absorption to 90 MVAr, with different
+interior boundaries in every quadrant. These are illustrative values, not a
+claim about a particular PCS. The Python API exposes
+`DirectionalCapabilityEnvelope`, `load_directional_capability_csv`, and
+`allocate_power_on_directional_envelope` for the same operation.
+
 Run the regression checks with:
 
 ```powershell
@@ -73,9 +122,9 @@ python -m unittest discover -s tests -v
 
 ## Explicit Limitations
 
-- The sampled curve is quadrant-symmetric, concave, and linearly interpolated.
-  Use separate project logic for asymmetric charge/discharge or reactive
-  injection/absorption limits.
+- Every sampled quadrant curve is concave and linearly interpolated. The
+  symmetric input mirrors one curve; the directional input requires four
+  curves and consistent shared-axis intercepts.
 - Dynamic current limits, voltage dependence, and temperature derating are
   not calculated internally. They can be represented only after an external
   study supplies the applicable sampled envelope. SOC and interval-duration

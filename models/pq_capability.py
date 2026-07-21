@@ -15,6 +15,13 @@ class PowerPriority(str, Enum):
     PROPORTIONAL = "proportional"
 
 
+class CapabilityQuadrant(str, Enum):
+    DISCHARGE_INJECTION = "discharge_injection"
+    DISCHARGE_ABSORPTION = "discharge_absorption"
+    CHARGE_INJECTION = "charge_injection"
+    CHARGE_ABSORPTION = "charge_absorption"
+
+
 @dataclass(frozen=True)
 class CapabilityResult:
     requested_active_mw: float
@@ -172,6 +179,85 @@ class PiecewiseCapabilityCurve:
                     boundary_reactive_mvar,
                 )
         raise RuntimeError("validated capability curve did not intersect command ray")
+
+
+@dataclass(frozen=True)
+class DirectionalCapabilityEnvelope:
+    """Four signed P-Q boundaries with consistent shared-axis limits."""
+
+    discharge_injection: PiecewiseCapabilityCurve
+    discharge_absorption: PiecewiseCapabilityCurve
+    charge_injection: PiecewiseCapabilityCurve
+    charge_absorption: PiecewiseCapabilityCurve
+
+    def __post_init__(self) -> None:
+        curves = self.curves
+        for quadrant, curve in curves.items():
+            if not isinstance(curve, PiecewiseCapabilityCurve):
+                raise ValueError(f"{quadrant.value} must be a PiecewiseCapabilityCurve")
+
+        self._require_shared_axis(
+            "discharge active-axis",
+            self.discharge_injection.maximum_active_mw,
+            self.discharge_absorption.maximum_active_mw,
+        )
+        self._require_shared_axis(
+            "charge active-axis",
+            self.charge_injection.maximum_active_mw,
+            self.charge_absorption.maximum_active_mw,
+        )
+        self._require_shared_axis(
+            "injection reactive-axis",
+            self.discharge_injection.maximum_reactive_mvar,
+            self.charge_injection.maximum_reactive_mvar,
+        )
+        self._require_shared_axis(
+            "absorption reactive-axis",
+            self.discharge_absorption.maximum_reactive_mvar,
+            self.charge_absorption.maximum_reactive_mvar,
+        )
+
+    @staticmethod
+    def _require_shared_axis(name: str, first: float, second: float) -> None:
+        if not math.isclose(first, second, rel_tol=1e-12, abs_tol=1e-12):
+            raise ValueError(f"directional envelope {name} limits must match")
+
+    @property
+    def curves(self) -> dict[CapabilityQuadrant, PiecewiseCapabilityCurve]:
+        return {
+            CapabilityQuadrant.DISCHARGE_INJECTION: self.discharge_injection,
+            CapabilityQuadrant.DISCHARGE_ABSORPTION: self.discharge_absorption,
+            CapabilityQuadrant.CHARGE_INJECTION: self.charge_injection,
+            CapabilityQuadrant.CHARGE_ABSORPTION: self.charge_absorption,
+        }
+
+    @property
+    def point_count(self) -> int:
+        return sum(len(curve.points) for curve in self.curves.values())
+
+    def quadrant_for(
+        self,
+        active_mw: float,
+        reactive_mvar: float,
+    ) -> CapabilityQuadrant:
+        values = {"active_mw": active_mw, "reactive_mvar": reactive_mvar}
+        for name, value in values.items():
+            if not math.isfinite(value):
+                raise ValueError(f"{name} must be finite")
+        if active_mw >= 0.0:
+            if reactive_mvar >= 0.0:
+                return CapabilityQuadrant.DISCHARGE_INJECTION
+            return CapabilityQuadrant.DISCHARGE_ABSORPTION
+        if reactive_mvar >= 0.0:
+            return CapabilityQuadrant.CHARGE_INJECTION
+        return CapabilityQuadrant.CHARGE_ABSORPTION
+
+    def curve_for(
+        self,
+        active_mw: float,
+        reactive_mvar: float,
+    ) -> PiecewiseCapabilityCurve:
+        return self.curves[self.quadrant_for(active_mw, reactive_mvar)]
 
 
 def _clip(value: float, limit: float) -> float:
@@ -343,6 +429,23 @@ def allocate_power_on_curve(
     )
 
 
+def allocate_power_on_directional_envelope(
+    requested_active_mw: float,
+    requested_reactive_mvar: float,
+    envelope: DirectionalCapabilityEnvelope,
+    priority: PowerPriority | str = PowerPriority.ACTIVE,
+) -> CapabilityResult:
+    """Apply the sampled boundary for the requested command quadrant."""
+
+    curve = envelope.curve_for(requested_active_mw, requested_reactive_mvar)
+    return allocate_power_on_curve(
+        requested_active_mw,
+        requested_reactive_mvar,
+        curve,
+        priority,
+    )
+
+
 def load_capability_curve_csv(path: str | Path) -> PiecewiseCapabilityCurve:
     """Load a strict active/reactive-limit capability curve from CSV."""
 
@@ -375,15 +478,82 @@ def load_capability_curve_csv(path: str | Path) -> PiecewiseCapabilityCurve:
     return PiecewiseCapabilityCurve(tuple(points))
 
 
+def load_directional_capability_csv(
+    path: str | Path,
+) -> DirectionalCapabilityEnvelope:
+    """Load four strict quadrant-specific capability curves from one CSV."""
+
+    csv_path = Path(path)
+    grouped_points: dict[CapabilityQuadrant, list[CapabilityCurvePoint]] = {
+        quadrant: [] for quadrant in CapabilityQuadrant
+    }
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        expected_columns = (
+            "quadrant",
+            "active_mw",
+            "reactive_limit_mvar",
+        )
+        if tuple(reader.fieldnames or ()) != expected_columns:
+            raise ValueError(
+                "directional capability CSV header must be "
+                "quadrant,active_mw,reactive_limit_mvar"
+            )
+        for line_number, row in enumerate(reader, start=2):
+            if None in row or any(
+                value is None or not value.strip() for value in row.values()
+            ):
+                raise ValueError(
+                    f"directional capability CSV line {line_number} must be complete"
+                )
+            try:
+                quadrant = CapabilityQuadrant(row["quadrant"])
+            except ValueError as error:
+                choices = ", ".join(item.value for item in CapabilityQuadrant)
+                raise ValueError(
+                    f"directional capability CSV line {line_number} quadrant "
+                    f"must be one of: {choices}"
+                ) from error
+            try:
+                point = CapabilityCurvePoint(
+                    active_mw=float(row["active_mw"]),
+                    reactive_limit_mvar=float(row["reactive_limit_mvar"]),
+                )
+            except ValueError as error:
+                raise ValueError(
+                    f"directional capability CSV line {line_number} must be numeric"
+                ) from error
+            grouped_points[quadrant].append(point)
+
+    curves: dict[CapabilityQuadrant, PiecewiseCapabilityCurve] = {}
+    for quadrant, points in grouped_points.items():
+        if not points:
+            raise ValueError(
+                f"directional capability CSV is missing {quadrant.value} points"
+            )
+        try:
+            curves[quadrant] = PiecewiseCapabilityCurve(tuple(points))
+        except ValueError as error:
+            raise ValueError(f"invalid {quadrant.value} curve: {error}") from error
+
+    return DirectionalCapabilityEnvelope(
+        discharge_injection=curves[CapabilityQuadrant.DISCHARGE_INJECTION],
+        discharge_absorption=curves[CapabilityQuadrant.DISCHARGE_ABSORPTION],
+        charge_injection=curves[CapabilityQuadrant.CHARGE_INJECTION],
+        charge_absorption=curves[CapabilityQuadrant.CHARGE_ABSORPTION],
+    )
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Apply a circular or sampled inverter P-Q capability limit."
+        description="Apply a circular, symmetric, or directional P-Q limit."
     )
     parser.add_argument("--active-mw", type=float, required=True)
     parser.add_argument("--reactive-mvar", type=float, required=True)
     boundary = parser.add_mutually_exclusive_group(required=True)
     boundary.add_argument("--limit-mva", type=float)
     boundary.add_argument("--curve-csv", type=Path)
+    boundary.add_argument("--directional-curve-csv", type=Path)
     parser.add_argument(
         "--priority",
         choices=[item.value for item in PowerPriority],
@@ -394,7 +564,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    if args.curve_csv is None:
+    selected_quadrant = None
+    if args.limit_mva is not None:
         result = allocate_power(
             args.active_mw,
             args.reactive_mvar,
@@ -402,7 +573,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.priority,
         )
         capability_model = None
-    else:
+    elif args.curve_csv is not None:
         curve = load_capability_curve_csv(args.curve_csv)
         result = allocate_power_on_curve(
             args.active_mw,
@@ -411,8 +582,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.priority,
         )
         capability_model = f"piecewise curve ({len(curve.points)} points)"
+    else:
+        envelope = load_directional_capability_csv(args.directional_curve_csv)
+        result = allocate_power_on_directional_envelope(
+            args.active_mw,
+            args.reactive_mvar,
+            envelope,
+            args.priority,
+        )
+        selected_quadrant = envelope.quadrant_for(
+            args.active_mw,
+            args.reactive_mvar,
+        )
+        capability_model = (
+            f"directional envelope (4 quadrants, {envelope.point_count} points)"
+        )
     if capability_model is not None:
         print(f"Capability model: {capability_model}")
+    if selected_quadrant is not None:
+        print(f"Capability quadrant: {selected_quadrant.value}")
     print(f"Priority: {result.priority.value}")
     print(f"Limited: {str(result.limited).lower()}")
     print(f"Active power: {result.active_mw:.3f} MW")
