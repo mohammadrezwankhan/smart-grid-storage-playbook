@@ -147,6 +147,39 @@ class ReserveSequenceTests(unittest.TestCase):
         self.assertEqual(result.upward_energy_limited_interval_count, 0)
         self.assertEqual(result.downward_energy_limited_interval_count, 0)
 
+    def test_reactive_profile_applies_the_correct_limit_each_interval(self):
+        result = audit_reserve_sequence(
+            [10.0, 10.0],
+            [15.0, 15.0],
+            30.0,
+            100.0,
+            100.0,
+            StorageEnergyState(1000.0, 0.50),
+            reactive_power_mvar_profile=[0.0, 80.0],
+            capability_boundary=100.0,
+        )
+
+        self.assertEqual(result.reactive_power_mvar_profile, (0.0, 80.0))
+        self.assertEqual(
+            [interval.reserve.upward_reserve_mw for interval in result.intervals],
+            [90.0, 50.0],
+        )
+        self.assertEqual(result.minimum_upward_reserve_interval, 2)
+
+    def test_reactive_profile_validates_length_and_scalar_conflict(self):
+        state = StorageEnergyState(100.0, 0.50)
+        with self.assertRaisesRegex(ValueError, "equal lengths"):
+            audit_reserve_sequence(
+                [0.0], [15.0], 15.0, 10.0, 10.0, state,
+                reactive_power_mvar_profile=[0.0, 1.0],
+            )
+        with self.assertRaisesRegex(ValueError, "must be zero"):
+            audit_reserve_sequence(
+                [0.0], [15.0], 15.0, 10.0, 10.0, state,
+                reactive_power_mvar=1.0,
+                reactive_power_mvar_profile=[0.0],
+            )
+
     def test_unsustainable_schedule_interval_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "interval 1 cannot be sustained"):
             audit_reserve_sequence(
@@ -238,10 +271,32 @@ class ReserveSequenceTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         output = standard_output.getvalue()
-        self.assertIn("Reactive power obligation: 80.000 MVAr", output)
+        self.assertIn("Reactive power profile: 80.000, 80.000 MVAr", output)
         self.assertIn("Minimum upward reserve: 50.000 MW", output)
         self.assertIn("Minimum downward reserve: 70.000 MW", output)
         self.assertIn("capability-limited intervals: upward=2, downward=2", output)
+
+    def test_cli_reports_interval_reactive_profile(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--baseline-active-mw-profile", "10,10",
+                    "--interval-duration-minutes-profile", "15,15",
+                    "--reactive-mvar-profile", "0,80",
+                    "--response-duration-minutes", "30",
+                    "--maximum-discharge-mw", "100",
+                    "--maximum-charge-mw", "100",
+                    "--energy-capacity-mwh", "1000",
+                    "--initial-soc", "0.5",
+                    "--limit-mva", "100",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Reactive power profile: 0.000, 80.000 MVAr", output)
+        self.assertIn("Interval 2: baseline=10.000 MW, reactive=80.000 MVAr", output)
 
 
 if __name__ == "__main__":
