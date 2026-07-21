@@ -57,6 +57,13 @@ jobs:
           models/data/illustrative_directional_capability.csv
           --priority active
 
+      - name: Run external temperature power derating
+        run: >-
+          python models/temperature_derating.py
+          --active-mw -90 --temperature-c 40
+          --max-discharge-mw 80 --max-charge-mw 100
+          --curve-csv models/data/illustrative_temperature_derating.csv
+
       - name: Run directional grid-support sequence
         run: >-
           python models/grid_support_sequence.py

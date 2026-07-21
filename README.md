@@ -20,6 +20,7 @@ and project teams.
 - [Executable frequency-watt dispatch reference](models/README.md#frequency-watt-dispatch-reference)
 - [Executable frequency measurement filter](models/README.md#frequency-measurement-filter)
 - [Executable active-power ramp limits](models/README.md#active-power-ramp-limits)
+- [Executable external temperature power derating](models/README.md#external-temperature-power-derating)
 - [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
 - [Executable multi-interval energy trajectory](models/README.md#multi-interval-energy-trajectory)
 - [Executable multi-service grid-support sequence](models/README.md#multi-service-grid-support-sequence)
@@ -121,6 +122,10 @@ python models/measurement_filter.py `
 python models/ramp_limits.py `
   --active-mw 80 --previous-active-mw 20 --interval-seconds 30 `
   --ramp-up-mw-per-minute 40 --ramp-down-mw-per-minute 60
+python models/temperature_derating.py `
+  --active-mw -90 --temperature-c 40 `
+  --max-discharge-mw 80 --max-charge-mw 100 `
+  --curve-csv models/data/illustrative_temperature_derating.csv
 python models/energy_limits.py `
   --active-mw 100 --duration-minutes 60 `
   --energy-capacity-mwh 50 --initial-soc 0.50 `

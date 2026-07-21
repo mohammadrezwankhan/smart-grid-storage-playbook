@@ -1,0 +1,7 @@
+temperature_c,max_discharge_mw,max_charge_mw
+-20,30,0
+0,70,40
+20,100,80
+35,100,80
+45,70,50
+55,20,10
