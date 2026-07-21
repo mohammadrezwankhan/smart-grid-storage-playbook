@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 
 try:
@@ -34,11 +35,23 @@ except ModuleNotFoundError:
 try:
     from models.pq_capability import (
         CapabilityResult,
+        DirectionalCapabilityEnvelope,
+        PiecewiseCapabilityCurve,
         PowerPriority,
-        allocate_power,
+        allocate_power_on_boundary,
+        load_capability_curve_csv,
+        load_directional_capability_csv,
     )
 except ModuleNotFoundError:
-    from pq_capability import CapabilityResult, PowerPriority, allocate_power
+    from pq_capability import (
+        CapabilityResult,
+        DirectionalCapabilityEnvelope,
+        PiecewiseCapabilityCurve,
+        PowerPriority,
+        allocate_power_on_boundary,
+        load_capability_curve_csv,
+        load_directional_capability_csv,
+    )
 
 try:
     from models.ramp_limits import (
@@ -130,7 +143,7 @@ def dispatch_frequency_watt(
     frequency_hz: float,
     baseline_active_mw: float,
     reactive_power_mvar: float,
-    apparent_power_limit_mva: float,
+    apparent_power_limit_mva: float | None,
     curve: FrequencyWattCurve = FrequencyWattCurve(),
     priority: PowerPriority | str = PowerPriority.ACTIVE,
     energy_state: StorageEnergyState | None = None,
@@ -141,6 +154,9 @@ def dispatch_frequency_watt(
     frequency_filter_config: FirstOrderFilterConfig | None = None,
     previous_filtered_frequency_hz: float | None = None,
     measurement_interval_seconds: float | None = None,
+    capability_envelope: (
+        PiecewiseCapabilityCurve | DirectionalCapabilityEnvelope | None
+    ) = None,
 ) -> FrequencyWattDispatch:
     """Evaluate frequency response with optional measurement and plant limits."""
 
@@ -227,10 +243,20 @@ def dispatch_frequency_watt(
             energy_state,
         )
         bounded_active_mw = energy.delivered_active_mw
-    capability = allocate_power(
+    if (apparent_power_limit_mva is None) == (capability_envelope is None):
+        raise ValueError(
+            "provide exactly one circular MVA limit or sampled capability envelope"
+        )
+    capability_boundary = (
+        capability_envelope
+        if capability_envelope is not None
+        else apparent_power_limit_mva
+    )
+    assert capability_boundary is not None
+    capability = allocate_power_on_boundary(
         bounded_active_mw,
         reactive_power_mvar,
-        apparent_power_limit_mva,
+        capability_boundary,
         priority,
     )
     delivered_energy = None
@@ -265,7 +291,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--frequency-hz", type=float, required=True)
     parser.add_argument("--baseline-active-mw", type=float, default=0.0)
     parser.add_argument("--reactive-mvar", type=float, default=0.0)
-    parser.add_argument("--limit-mva", type=float, required=True)
+    boundary = parser.add_mutually_exclusive_group(required=True)
+    boundary.add_argument("--limit-mva", type=float)
+    boundary.add_argument("--curve-csv", type=Path)
+    boundary.add_argument("--directional-curve-csv", type=Path)
     parser.add_argument(
         "--priority",
         choices=[item.value for item in PowerPriority],
@@ -295,6 +324,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+    capability_envelope = None
+    if args.curve_csv is not None:
+        capability_envelope = load_capability_curve_csv(args.curve_csv)
+    elif args.directional_curve_csv is not None:
+        capability_envelope = load_directional_capability_csv(
+            args.directional_curve_csv
+        )
     curve = FrequencyWattCurve(
         nominal_frequency_hz=args.nominal_frequency_hz,
         deadband_hz=args.deadband_hz,
@@ -392,8 +428,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         frequency_filter_config=frequency_filter_config,
         previous_filtered_frequency_hz=args.previous_filtered_frequency_hz,
         measurement_interval_seconds=args.measurement_interval_seconds,
+        capability_envelope=capability_envelope,
     )
     capability = result.capability
+    if isinstance(capability_envelope, DirectionalCapabilityEnvelope):
+        print(
+            "Capability model: directional envelope "
+            f"(4 quadrants, {capability_envelope.point_count} points)"
+        )
+        quadrant = capability_envelope.quadrant_for(
+            result.bounded_active_mw,
+            args.reactive_mvar,
+        )
+        print(f"Capability quadrant: {quadrant.value}")
+    elif isinstance(capability_envelope, PiecewiseCapabilityCurve):
+        print(
+            "Capability model: piecewise curve "
+            f"({len(capability_envelope.points)} points)"
+        )
     print(f"Frequency: {result.frequency_hz:.3f} Hz")
     if result.frequency_filter is not None:
         print(

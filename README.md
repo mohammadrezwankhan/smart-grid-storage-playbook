@@ -139,6 +139,15 @@ python models/grid_support_sequence.py `
   --limit-mva 100 --energy-capacity-mwh 100 `
   --initial-soc 0.50 --minimum-soc 0.20 `
   --charge-efficiency 1 --discharge-efficiency 1
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 49.5,49.5,50.5,50.5 `
+  --voltage-pu-profile 0.95,1.05,0.95,1.05 `
+  --duration-minutes-profile 1,1,1,1 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv `
+  --energy-capacity-mwh 1000 --initial-soc 0.50 `
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --priority reactive
 python -m unittest discover -s tests -v
 ```
 

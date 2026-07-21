@@ -182,10 +182,10 @@ settings before engineering use.
 
 [`frequency_watt.py`](frequency_watt.py) adds an illustrative frequency
 deadband, linear droop region, charge/discharge saturation, baseline schedule,
-and circular P-Q capability enforcement. Positive active power means discharge
-and injection into the grid; negative active power means charging. Below the
-lower deadband boundary, the controller increases injection. Above the upper
-deadband boundary, it reduces injection and can request charging.
+and circular or sampled P-Q capability enforcement. Positive active power means
+discharge and injection into the grid; negative active power means charging.
+Below the lower deadband boundary, the controller increases injection. Above
+the upper deadband boundary, it reduces injection and can request charging.
 
 The defaults assume a 50 Hz system, a `+/-0.05 Hz` deadband, and full response
 at a `+/-0.50 Hz` deviation. These values are educational examples, not
@@ -209,6 +209,19 @@ Storage-bounded active request: 70.000 MW
 Capability limited: true
 Delivered active power: 70.000 MW
 Delivered reactive power: 71.414 MVAr
+```
+
+Replace `--limit-mva` with `--curve-csv` or
+`--directional-curve-csv` to apply a sampled boundary after the same frequency,
+storage-power, ramp, and energy stages. For example, reactive-priority charging
+and absorption selects the directional charge/absorption quadrant:
+
+```powershell
+python models/frequency_watt.py `
+  --frequency-hz 50.5 --reactive-mvar -70 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv `
+  --priority reactive
 ```
 
 The model is static. It excludes sensor errors, higher-order measurement
@@ -289,7 +302,7 @@ Ramp limiting direction: ramp_up
 
 The integrated sequence is raw measurement, optional frequency filter,
 frequency-watt request, storage charge/discharge power bound, ramp bound,
-interval energy bound, and circular P-Q allocation.
+interval energy bound, and the selected circular or sampled P-Q allocation.
 The returned `ramp`, `energy`, and `capability` records preserve each stage for
 review. The ramp interval is the time available to move from the previous
 command; it is distinct from the energy response duration.
@@ -378,11 +391,11 @@ limitations of the single-interval model still apply.
 
 [`grid_support_sequence.py`](grid_support_sequence.py) composes the existing
 frequency-watt, Volt-VAR, measurement-filter, active-power-ramp, SOC, and
-circular P-Q models over a variable-duration profile. Each interval starts from
-the prior interval's delivered ending SOC. When ramp limits or frequency
-filtering are enabled, it also starts from the prior delivered active power or
-filtered frequency, so curtailment at one control layer changes the next
-interval's reachable state.
+circular or sampled P-Q models over a variable-duration profile. Each interval
+starts from the prior interval's delivered ending SOC. When ramp limits or
+frequency filtering are enabled, it also starts from the prior delivered active
+power or filtered frequency, so curtailment at one control layer changes the
+next interval's reachable state.
 
 Run three simultaneous frequency and voltage events with reactive-power
 priority:
@@ -417,6 +430,46 @@ accounting therefore keeps SOC at 0.45 instead of applying the pre-capability
 active request. `active`, `reactive`, and `proportional` priorities remain
 available for explicit service-conflict studies.
 
+Use `--curve-csv` or `--directional-curve-csv` instead of `--limit-mva` to
+apply the same strict sampled boundaries as the standalone allocator. With a
+directional envelope and no explicit `--reactive-base-mvar`, positive Volt-VAR
+requests use the injection-axis limit and negative requests use the
+absorption-axis limit. This keeps asymmetric MVAr capability visible rather
+than scaling both directions from one circular rating.
+
+Run a four-interval case that traverses discharge/injection,
+discharge/absorption, charge/injection, and charge/absorption:
+
+```powershell
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 49.5,49.5,50.5,50.5 `
+  --voltage-pu-profile 0.95,1.05,0.95,1.05 `
+  --duration-minutes-profile 1,1,1,1 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv `
+  --energy-capacity-mwh 1000 --initial-soc 0.50 `
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --priority reactive
+```
+
+Expected directional results:
+
+```text
+Intervals: 4
+Limited intervals: 4
+Ending SOC: 0.4994
+Delivered active energy: 0.600 MWh
+Requested reactive service: 3.167 MVArh
+Delivered reactive service: 3.167 MVArh
+SOC balance error: 0.000e+00
+```
+
+The four delivered P/Q pairs are `(81.818, 50.000)`, `(80.000, -45.000)`,
+`(-65.000, 50.000)`, and `(-60.833, -45.000)` in MW/MVAr. Capability
+allocation remains after storage power, ramp, and energy bounds. Final SOC is
+recomputed from active power after capability curtailment, so the sequence does
+not debit energy for a pre-envelope request that the PCS cannot deliver.
+
 Active-energy totals preserve sign, so charging offsets discharge. Reactive
 service totals sum absolute MVArh because injection and absorption are both
 delivered voltage-support work; each interval row retains the Q direction.
@@ -424,7 +477,9 @@ delivered voltage-support work; each interval row retains the Q direction.
 The profile is an auditable control composition, not a dynamic network or
 electromagnetic-transient simulation. Each measurement is held constant for
 its interval. When ramp limits are enabled, they constrain the active setpoint
-before circular P-Q allocation; a higher-priority reactive request may then
-curtail delivered active power beyond that setpoint. Voltage feedback from
-reactive injection, frequency dynamics, controller latency, converter thermal
-limits, degradation, auxiliary demand, and uncertainty remain excluded.
+before P-Q allocation; a higher-priority reactive request may then curtail
+delivered active power beyond that setpoint. Sampled envelopes remain static
+external inputs and do not derive SOC, voltage, temperature, or grid-condition
+derating internally. Voltage feedback from reactive injection, frequency
+dynamics, controller latency, converter thermal limits, degradation, auxiliary
+demand, and uncertainty remain excluded.

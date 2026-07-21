@@ -50,6 +50,18 @@ jobs:
           models/data/illustrative_directional_capability.csv
           --priority active
 
+      - name: Run directional grid-support sequence
+        run: >-
+          python models/grid_support_sequence.py
+          --frequency-hz-profile 49.5,49.5,50.5,50.5
+          --voltage-pu-profile 0.95,1.05,0.95,1.05
+          --duration-minutes-profile 1,1,1,1
+          --directional-curve-csv
+          models/data/illustrative_directional_capability.csv
+          --energy-capacity-mwh 1000 --initial-soc 0.5
+          --charge-efficiency 1 --discharge-efficiency 1
+          --priority reactive
+
       - name: Check Markdown links
         uses: lycheeverse/lychee-action@v2
         with:
