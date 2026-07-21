@@ -27,6 +27,19 @@ try:
 except ModuleNotFoundError:
     from pq_capability import CapabilityResult, PowerPriority, allocate_power
 
+try:
+    from models.ramp_limits import (
+        RampLimitedDispatch,
+        RampRateLimits,
+        limit_active_power_by_ramp,
+    )
+except ModuleNotFoundError:
+    from ramp_limits import (
+        RampLimitedDispatch,
+        RampRateLimits,
+        limit_active_power_by_ramp,
+    )
+
 
 @dataclass(frozen=True)
 class FrequencyWattCurve:
@@ -89,8 +102,10 @@ class FrequencyWattDispatch:
     droop_adjustment_mw: float
     unconstrained_active_mw: float
     power_bounded_active_mw: float
+    ramp_bounded_active_mw: float
     bounded_active_mw: float
     storage_power_limited: bool
+    ramp: RampLimitedDispatch | None
     energy: EnergyLimitedDispatch | None
     delivered_energy: EnergyLimitedDispatch | None
     capability: CapabilityResult
@@ -105,8 +120,11 @@ def dispatch_frequency_watt(
     priority: PowerPriority | str = PowerPriority.ACTIVE,
     energy_state: StorageEnergyState | None = None,
     duration_minutes: float | None = None,
+    ramp_limits: RampRateLimits | None = None,
+    previous_active_mw: float | None = None,
+    ramp_interval_seconds: float | None = None,
 ) -> FrequencyWattDispatch:
-    """Evaluate frequency response with optional interval energy enforcement."""
+    """Evaluate frequency response with optional ramp and energy enforcement."""
 
     if not math.isfinite(baseline_active_mw):
         raise ValueError("baseline_active_mw must be finite")
@@ -125,11 +143,37 @@ def dispatch_frequency_watt(
     )
     if (energy_state is None) != (duration_minutes is None):
         raise ValueError("energy_state and duration_minutes must be provided together")
+    ramp_inputs = (ramp_limits, previous_active_mw, ramp_interval_seconds)
+    if any(value is not None for value in ramp_inputs) and not all(
+        value is not None for value in ramp_inputs
+    ):
+        raise ValueError(
+            "ramp_limits, previous_active_mw, and ramp_interval_seconds "
+            "must be provided together"
+        )
+    ramp = None
+    ramp_bounded_active_mw = power_bounded_active_mw
+    if (
+        ramp_limits is not None
+        and previous_active_mw is not None
+        and ramp_interval_seconds is not None
+    ):
+        if not (-curve.max_charge_mw <= previous_active_mw <= curve.max_discharge_mw):
+            raise ValueError(
+                "previous_active_mw must be within configured storage power limits"
+            )
+        ramp = limit_active_power_by_ramp(
+            power_bounded_active_mw,
+            previous_active_mw,
+            ramp_interval_seconds,
+            ramp_limits,
+        )
+        ramp_bounded_active_mw = ramp.delivered_active_mw
     energy = None
-    bounded_active_mw = power_bounded_active_mw
+    bounded_active_mw = ramp_bounded_active_mw
     if energy_state is not None and duration_minutes is not None:
         energy = limit_active_power_by_energy(
-            power_bounded_active_mw,
+            ramp_bounded_active_mw,
             duration_minutes,
             energy_state,
         )
@@ -153,8 +197,10 @@ def dispatch_frequency_watt(
         droop_adjustment_mw=adjustment_mw,
         unconstrained_active_mw=unconstrained_active_mw,
         power_bounded_active_mw=power_bounded_active_mw,
+        ramp_bounded_active_mw=ramp_bounded_active_mw,
         bounded_active_mw=bounded_active_mw,
         storage_power_limited=storage_power_limited,
+        ramp=ramp,
         energy=energy,
         delivered_energy=delivered_energy,
         capability=capability,
@@ -179,6 +225,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full-response-deviation-hz", type=float, default=0.50)
     parser.add_argument("--max-discharge-mw", type=float, default=100.0)
     parser.add_argument("--max-charge-mw", type=float, default=100.0)
+    parser.add_argument("--previous-active-mw", type=float)
+    parser.add_argument("--ramp-interval-seconds", type=float)
+    parser.add_argument("--ramp-up-mw-per-minute", type=float)
+    parser.add_argument("--ramp-down-mw-per-minute", type=float)
     parser.add_argument("--duration-minutes", type=float)
     parser.add_argument("--energy-capacity-mwh", type=float)
     parser.add_argument("--initial-soc", type=float)
@@ -233,6 +283,29 @@ def main(argv: Sequence[str] | None = None) -> int:
                 0.95 if args.discharge_efficiency is None else args.discharge_efficiency
             ),
         )
+    ramp_inputs = (
+        args.previous_active_mw,
+        args.ramp_interval_seconds,
+        args.ramp_up_mw_per_minute,
+        args.ramp_down_mw_per_minute,
+    )
+    if any(value is not None for value in ramp_inputs) and not all(
+        value is not None for value in ramp_inputs
+    ):
+        raise ValueError(
+            "previous_active_mw, ramp_interval_seconds, "
+            "ramp_up_mw_per_minute, and ramp_down_mw_per_minute "
+            "must be provided together"
+        )
+    ramp_limits = None
+    if (
+        args.ramp_up_mw_per_minute is not None
+        and args.ramp_down_mw_per_minute is not None
+    ):
+        ramp_limits = RampRateLimits(
+            args.ramp_up_mw_per_minute,
+            args.ramp_down_mw_per_minute,
+        )
     result = dispatch_frequency_watt(
         frequency_hz=args.frequency_hz,
         baseline_active_mw=args.baseline_active_mw,
@@ -242,13 +315,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         priority=args.priority,
         energy_state=energy_state,
         duration_minutes=args.duration_minutes,
+        ramp_limits=ramp_limits,
+        previous_active_mw=args.previous_active_mw,
+        ramp_interval_seconds=args.ramp_interval_seconds,
     )
     capability = result.capability
     print(f"Frequency: {result.frequency_hz:.3f} Hz")
     print(f"Droop adjustment: {result.droop_adjustment_mw:.3f} MW")
     print(f"Unconstrained active request: {result.unconstrained_active_mw:.3f} MW")
-    if result.energy is not None:
+    if result.ramp is not None or result.energy is not None:
         print(f"Power-bounded active request: {result.power_bounded_active_mw:.3f} MW")
+    if result.ramp is not None:
+        direction = (
+            "none"
+            if result.ramp.limiting_direction is None
+            else result.ramp.limiting_direction.value
+        )
+        print(f"Previous active power: {result.ramp.previous_active_mw:.3f} MW")
+        print(f"Ramp-bounded active request: {result.ramp_bounded_active_mw:.3f} MW")
+        print(f"Ramp limited: {str(result.ramp.ramp_limited).lower()}")
+        print(f"Ramp limiting direction: {direction}")
     print(f"Storage-bounded active request: {result.bounded_active_mw:.3f} MW")
     print(f"Storage power limited: {str(result.storage_power_limited).lower()}")
     if result.energy is not None:
