@@ -521,6 +521,47 @@ limitations of the single-interval model still apply. The equivalent-cycle
 value is an accounting normalization, not a rainflow cycle count, degradation
 estimate, warranty interpretation, or remaining-life prediction.
 
+## Sustained Reserve Headroom
+
+[`reserve_headroom.py`](reserve_headroom.py) converts nameplate charge and
+discharge limits into sustained upward and downward active-power reserve around
+a feasible baseline. It evaluates the configured response duration through the
+same SOC and standing-loss limiter, so a result distinguishes a power-limited
+reserve from one constrained by stored-energy headroom.
+
+Run a 30-minute assessment around a 10 MW discharge baseline:
+
+```powershell
+python models/reserve_headroom.py `
+  --baseline-active-mw 10 --duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --maximum-soc 0.80 `
+  --charge-efficiency 1 --discharge-efficiency 1
+```
+
+Expected directional headroom:
+
+```text
+Upward active-power limit: 60.000 MW
+Downward active-power limit: -60.000 MW
+Upward reserve: 50.000 MW
+Downward reserve: 70.000 MW
+Upward energy limited: true
+Downward energy limited: true
+```
+
+Positive power is discharge and negative power is charge. Upward reserve is
+the sustained discharge limit minus the baseline. Downward reserve is the
+baseline minus the sustained charge limit, so a discharging baseline can have
+more downward headroom than the charge limit magnitude alone.
+
+The baseline must itself remain feasible for the full response duration. This
+reference evaluates replacement setpoints from the initial state; it does not
+model activation delay, ramping, P-Q competition, thermal derating, reserve
+recovery, simultaneous services, or probabilistic availability. Compose those
+constraints separately before making a market or grid-code claim.
+
 ## Multi-Service Grid-Support Sequence
 
 [`grid_support_sequence.py`](grid_support_sequence.py) composes the existing
