@@ -140,6 +140,12 @@ python models/energy_sequence.py `
   --energy-capacity-mwh 100 --initial-soc 0.50 `
   --minimum-soc 0.20 --charge-efficiency 0.80 `
   --discharge-efficiency 1.00
+python models/reserve_headroom.py `
+  --baseline-active-mw 10 --duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --maximum-soc 0.80 `
+  --charge-efficiency 1 --discharge-efficiency 1
 python models/grid_support_sequence.py `
   --frequency-hz-profile 50,49.5,50.5 `
   --voltage-pu-profile 1,0.92,1.08 `
