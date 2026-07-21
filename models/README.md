@@ -295,3 +295,58 @@ optimizer. It does not choose prices, services, or interval requests, and it
 does not compose frequency, ramp, or P-Q constraints across time. The standing
 loss, auxiliary-load, nonlinear-efficiency, degradation, thermal, and capacity
 limitations of the single-interval model still apply.
+
+## Multi-Service Grid-Support Sequence
+
+[`grid_support_sequence.py`](grid_support_sequence.py) composes the existing
+frequency-watt, Volt-VAR, measurement-filter, active-power-ramp, SOC, and
+circular P-Q models over a variable-duration profile. Each interval starts from
+the prior interval's delivered ending SOC. When ramp limits or frequency
+filtering are enabled, it also starts from the prior delivered active power or
+filtered frequency, so curtailment at one control layer changes the next
+interval's reachable state.
+
+Run three simultaneous frequency and voltage events with reactive-power
+priority:
+
+```powershell
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 50,49.5,50.5 `
+  --voltage-pu-profile 1,0.92,1.08 `
+  --baseline-active-mw-profile 20,20,20 `
+  --duration-minutes-profile 15,15,15 `
+  --limit-mva 100 --energy-capacity-mwh 100 `
+  --initial-soc 0.50 --minimum-soc 0.20 `
+  --charge-efficiency 1 --discharge-efficiency 1
+```
+
+Expected summary:
+
+```text
+Intervals: 3
+Limited intervals: 2
+Ending SOC: 0.4500
+Requested active energy: 15.000 MWh
+Delivered active energy: 5.000 MWh
+Active shortfall energy: 50.000 MWh
+Delivered reactive service: 50.000 MVArh
+```
+
+At low voltage and under-frequency, both active and reactive support request
+the full 100-unit capability. The default reactive priority preserves the
+100 MVAr voltage request and curtails active power to zero; delivered-energy
+accounting therefore keeps SOC at 0.45 instead of applying the pre-capability
+active request. `active`, `reactive`, and `proportional` priorities remain
+available for explicit service-conflict studies.
+
+Active-energy totals preserve sign, so charging offsets discharge. Reactive
+service totals sum absolute MVArh because injection and absorption are both
+delivered voltage-support work; each interval row retains the Q direction.
+
+The profile is an auditable control composition, not a dynamic network or
+electromagnetic-transient simulation. Each measurement is held constant for
+its interval. When ramp limits are enabled, they constrain the active setpoint
+before circular P-Q allocation; a higher-priority reactive request may then
+curtail delivered active power beyond that setpoint. Voltage feedback from
+reactive injection, frequency dynamics, controller latency, converter thermal
+limits, degradation, auxiliary demand, and uncertainty remain excluded.
