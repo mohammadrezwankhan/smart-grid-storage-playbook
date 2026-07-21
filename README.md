@@ -145,7 +145,8 @@ python models/reserve_headroom.py `
   --maximum-discharge-mw 100 --maximum-charge-mw 100 `
   --energy-capacity-mwh 100 --initial-soc 0.50 `
   --minimum-soc 0.20 --maximum-soc 0.80 `
-  --charge-efficiency 1 --discharge-efficiency 1
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --reactive-mvar 80 --limit-mva 100
 python models/reserve_sequence.py `
   --baseline-active-mw-profile 20,20,20 `
   --interval-duration-minutes-profile 30,30,30 `
@@ -153,7 +154,8 @@ python models/reserve_sequence.py `
   --maximum-discharge-mw 100 --maximum-charge-mw 100 `
   --energy-capacity-mwh 100 --initial-soc 0.80 `
   --minimum-soc 0.20 --maximum-soc 0.90 `
-  --charge-efficiency 1 --discharge-efficiency 1
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --reactive-mvar 80 --limit-mva 100
 python models/grid_support_sequence.py `
   --frequency-hz-profile 50,49.5,50.5 `
   --voltage-pu-profile 1,0.92,1.08 `

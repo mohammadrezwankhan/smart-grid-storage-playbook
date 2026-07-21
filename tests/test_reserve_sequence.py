@@ -117,6 +117,36 @@ class ReserveSequenceTests(unittest.TestCase):
             result.intervals[0].baseline_dispatch.ending_soc,
         )
 
+    def test_fixed_reactive_obligation_limits_each_sequence_interval(self):
+        result = audit_reserve_sequence(
+            [10.0, 10.0],
+            [15.0, 15.0],
+            30.0,
+            100.0,
+            100.0,
+            StorageEnergyState(
+                1000.0,
+                0.50,
+                charge_efficiency=1.0,
+                discharge_efficiency=1.0,
+            ),
+            reactive_power_mvar=80.0,
+            capability_boundary=100.0,
+        )
+
+        self.assertEqual(
+            [interval.reserve.upward_reserve_mw for interval in result.intervals],
+            [50.0, 50.0],
+        )
+        self.assertEqual(
+            [interval.reserve.downward_reserve_mw for interval in result.intervals],
+            [70.0, 70.0],
+        )
+        self.assertEqual(result.upward_capability_limited_interval_count, 2)
+        self.assertEqual(result.downward_capability_limited_interval_count, 2)
+        self.assertEqual(result.upward_energy_limited_interval_count, 0)
+        self.assertEqual(result.downward_energy_limited_interval_count, 0)
+
     def test_unsustainable_schedule_interval_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "interval 1 cannot be sustained"):
             audit_reserve_sequence(
@@ -179,6 +209,39 @@ class ReserveSequenceTests(unittest.TestCase):
         self.assertIn("Minimum downward reserve: 40.000 MW (interval 1)", output)
         self.assertIn("upward=1, downward=3", output)
         self.assertIn("Interval 3: baseline=20.000 MW", output)
+
+    def test_cli_reports_sequence_capability_limit_counts(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--baseline-active-mw-profile",
+                    "10,10",
+                    "--interval-duration-minutes-profile",
+                    "15,15",
+                    "--response-duration-minutes",
+                    "30",
+                    "--maximum-discharge-mw",
+                    "100",
+                    "--maximum-charge-mw",
+                    "100",
+                    "--energy-capacity-mwh",
+                    "1000",
+                    "--initial-soc",
+                    "0.5",
+                    "--reactive-mvar",
+                    "80",
+                    "--limit-mva",
+                    "100",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Reactive power obligation: 80.000 MVAr", output)
+        self.assertIn("Minimum upward reserve: 50.000 MW", output)
+        self.assertIn("Minimum downward reserve: 70.000 MW", output)
+        self.assertIn("capability-limited intervals: upward=2, downward=2", output)
 
 
 if __name__ == "__main__":

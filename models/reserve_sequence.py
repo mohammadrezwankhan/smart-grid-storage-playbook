@@ -11,14 +11,26 @@ try:
         StorageEnergyState,
         limit_active_power_by_energy,
     )
-    from models.reserve_headroom import ReserveHeadroom, calculate_reserve_headroom
+    from models.pq_capability import CapabilityBoundary
+    from models.reserve_headroom import (
+        ReserveHeadroom,
+        add_capability_boundary_arguments,
+        calculate_reserve_headroom,
+        capability_boundary_from_args,
+    )
 except ModuleNotFoundError:
     from energy_limits import (
         EnergyLimitedDispatch,
         StorageEnergyState,
         limit_active_power_by_energy,
     )
-    from reserve_headroom import ReserveHeadroom, calculate_reserve_headroom
+    from pq_capability import CapabilityBoundary
+    from reserve_headroom import (
+        ReserveHeadroom,
+        add_capability_boundary_arguments,
+        calculate_reserve_headroom,
+        capability_boundary_from_args,
+    )
 
 
 @dataclass(frozen=True)
@@ -36,6 +48,7 @@ class ReserveSequenceAudit:
 
     intervals: tuple[ReserveSequenceInterval, ...]
     response_duration_minutes: float
+    reactive_power_mvar: float
     initial_soc: float
     ending_soc: float
     total_schedule_duration_minutes: float
@@ -50,6 +63,8 @@ class ReserveSequenceAudit:
     minimum_downward_reserve_interval: int
     upward_energy_limited_interval_count: int
     downward_energy_limited_interval_count: int
+    upward_capability_limited_interval_count: int
+    downward_capability_limited_interval_count: int
 
 
 def audit_reserve_sequence(
@@ -59,6 +74,9 @@ def audit_reserve_sequence(
     maximum_discharge_mw: float,
     maximum_charge_mw: float,
     state: StorageEnergyState,
+    *,
+    reactive_power_mvar: float = 0.0,
+    capability_boundary: CapabilityBoundary | None = None,
 ) -> ReserveSequenceAudit:
     """Assess sustained reserve before each baseline interval and carry SOC."""
 
@@ -84,6 +102,8 @@ def audit_reserve_sequence(
             maximum_discharge_mw=maximum_discharge_mw,
             maximum_charge_mw=maximum_charge_mw,
             state=current_state,
+            reactive_power_mvar=reactive_power_mvar,
+            capability_boundary=capability_boundary,
         )
         baseline_dispatch = limit_active_power_by_energy(
             baseline_mw,
@@ -128,6 +148,7 @@ def audit_reserve_sequence(
     return ReserveSequenceAudit(
         intervals=intervals,
         response_duration_minutes=response_duration_minutes,
+        reactive_power_mvar=reactive_power_mvar,
         initial_soc=state.initial_soc,
         ending_soc=ending_soc,
         total_schedule_duration_minutes=math.fsum(durations),
@@ -158,6 +179,12 @@ def audit_reserve_sequence(
         ),
         downward_energy_limited_interval_count=sum(
             interval.reserve.downward_energy_limited for interval in intervals
+        ),
+        upward_capability_limited_interval_count=sum(
+            interval.reserve.upward_capability_limited for interval in intervals
+        ),
+        downward_capability_limited_interval_count=sum(
+            interval.reserve.downward_capability_limited for interval in intervals
         ),
     )
 
@@ -204,6 +231,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--discharge-efficiency", type=float, default=0.95)
     parser.add_argument("--auxiliary-load-mw", type=float, default=0.0)
     parser.add_argument("--self-discharge-rate-per-hour", type=float, default=0.0)
+    add_capability_boundary_arguments(parser)
     return parser.parse_args(argv)
 
 
@@ -225,10 +253,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             auxiliary_load_mw=args.auxiliary_load_mw,
             self_discharge_rate_per_hour=args.self_discharge_rate_per_hour,
         ),
+        reactive_power_mvar=args.reactive_mvar,
+        capability_boundary=capability_boundary_from_args(args),
     )
 
     print(f"Intervals: {len(result.intervals)}")
     print(f"Response duration: {result.response_duration_minutes:.3f} minutes")
+    print(f"Reactive power obligation: {result.reactive_power_mvar:.3f} MVAr")
     print(f"Initial SOC: {result.initial_soc:.4f}")
     print(f"Ending SOC: {result.ending_soc:.4f}")
     print(f"Baseline AC energy: {result.baseline_ac_energy_mwh:.3f} MWh")
@@ -246,6 +277,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "Reserve energy-limited intervals: "
         f"upward={result.upward_energy_limited_interval_count}, "
         f"downward={result.downward_energy_limited_interval_count}"
+    )
+    print(
+        "Reserve capability-limited intervals: "
+        f"upward={result.upward_capability_limited_interval_count}, "
+        f"downward={result.downward_capability_limited_interval_count}"
     )
     print(f"Auxiliary energy: {result.auxiliary_energy_mwh:.3f} MWh")
     print(f"Self-discharge energy: {result.self_discharge_energy_mwh:.3f} MWh")

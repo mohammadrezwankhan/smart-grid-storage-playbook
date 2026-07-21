@@ -59,6 +59,17 @@ jobs:
           --energy-capacity-mwh 100 --initial-soc 0.5
           --minimum-soc 0.2 --maximum-soc 0.8
           --charge-efficiency 1 --discharge-efficiency 1
+          --reactive-mvar 80 --limit-mva 100
+
+      - name: Run P-Q constrained reserve sequence
+        run: >-
+          python models/reserve_sequence.py
+          --baseline-active-mw-profile 10,10
+          --interval-duration-minutes-profile 15,15
+          --response-duration-minutes 30
+          --maximum-discharge-mw 100 --maximum-charge-mw 100
+          --energy-capacity-mwh 1000 --initial-soc 0.5
+          --reactive-mvar 80 --limit-mva 100
 
       - name: Run sampled capability envelope
         run: >-
