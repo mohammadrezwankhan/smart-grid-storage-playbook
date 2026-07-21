@@ -133,13 +133,53 @@ Delivered active power: 70.000 MW
 Delivered reactive power: 71.414 MVAr
 ```
 
-The model is static. It excludes frequency measurement filtering, control-loop
-dynamics, recovery logic, and interactions with plant-level dispatch. Optional
-ramp arguments enforce asymmetric signed active-power slew limits before SOC
-and P-Q allocation. Optional energy arguments then enforce SOC reserve,
-response duration, and charge/discharge efficiency. Replace every frequency,
+The model is static. It excludes sensor errors, higher-order measurement
+dynamics, control-loop dynamics, recovery logic, and interactions with
+plant-level dispatch. Optional filter arguments apply a first-order frequency
+measurement filter before deadband and droop evaluation. Optional ramp
+arguments enforce asymmetric signed active-power slew limits before SOC and P-Q
+allocation. Optional energy arguments then enforce SOC reserve, response
+duration, and charge/discharge efficiency. Replace every frequency, filter,
 power, ramp, energy, efficiency, baseline, and priority assumption with
 project-controlled values before engineering use.
+
+## Frequency Measurement Filter
+
+[`measurement_filter.py`](measurement_filter.py) applies the exact
+zero-order-hold solution of a first-order low-pass filter over one interval:
+
+```text
+y_next = input + (y_previous - input) exp(-interval / time_constant)
+```
+
+This makes the raw frequency measurement and the filtered control frequency
+separate, reviewable values. For example, a sudden raw measurement of 49.5 Hz
+does not immediately leave the default deadband when the previous filtered
+value is 50 Hz, the sample interval is 0.1 seconds, and the filter time constant
+is 1 second:
+
+```powershell
+python models/frequency_watt.py `
+  --frequency-hz 49.5 --baseline-active-mw 0 `
+  --reactive-mvar 0 --limit-mva 100 `
+  --previous-filtered-frequency-hz 50 `
+  --measurement-interval-seconds 0.1 `
+  --frequency-filter-time-constant-seconds 1
+```
+
+Expected filter and droop values:
+
+```text
+Frequency: 49.500 Hz
+Control frequency: 49.952 Hz
+Frequency-filter decay factor: 0.904837
+Droop adjustment: 0.000 MW
+```
+
+The previous filtered value must be carried from the prior control interval.
+The model assumes one constant input during each interval; it does not represent
+sampling jitter, sensor bias, rate-of-change-of-frequency logic, or a
+higher-order plant controller.
 
 ## Active-Power Ramp Limits
 
@@ -169,8 +209,9 @@ Ramp limited: true
 Ramp limiting direction: ramp_up
 ```
 
-The integrated sequence is frequency-watt request, storage charge/discharge
-power bound, ramp bound, interval energy bound, and circular P-Q allocation.
+The integrated sequence is raw measurement, optional frequency filter,
+frequency-watt request, storage charge/discharge power bound, ramp bound,
+interval energy bound, and circular P-Q allocation.
 The returned `ramp`, `energy`, and `capability` records preserve each stage for
 review. The ramp interval is the time available to move from the previous
 command; it is distinct from the energy response duration.
