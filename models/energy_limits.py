@@ -22,6 +22,8 @@ class StorageEnergyState:
     maximum_soc: float = 0.90
     charge_efficiency: float = 0.95
     discharge_efficiency: float = 0.95
+    auxiliary_load_mw: float = 0.0
+    self_discharge_rate_per_hour: float = 0.0
 
     def validate(self) -> None:
         values = {
@@ -31,6 +33,8 @@ class StorageEnergyState:
             "maximum_soc": self.maximum_soc,
             "charge_efficiency": self.charge_efficiency,
             "discharge_efficiency": self.discharge_efficiency,
+            "auxiliary_load_mw": self.auxiliary_load_mw,
+            "self_discharge_rate_per_hour": self.self_discharge_rate_per_hour,
         }
         for name, value in values.items():
             if not math.isfinite(value):
@@ -47,6 +51,10 @@ class StorageEnergyState:
             raise ValueError("charge_efficiency must be within (0, 1]")
         if not 0.0 < self.discharge_efficiency <= 1.0:
             raise ValueError("discharge_efficiency must be within (0, 1]")
+        if self.auxiliary_load_mw < 0.0:
+            raise ValueError("auxiliary_load_mw must be nonnegative")
+        if self.self_discharge_rate_per_hour < 0.0:
+            raise ValueError("self_discharge_rate_per_hour must be nonnegative")
 
 
 @dataclass(frozen=True)
@@ -56,10 +64,27 @@ class EnergyLimitedDispatch:
     duration_minutes: float
     initial_soc: float
     ending_soc: float
+    dispatch_stored_energy_change_mwh: float
+    auxiliary_energy_mwh: float
+    self_discharge_energy_mwh: float
     stored_energy_change_mwh: float
     power_shortfall_mw: float
     energy_limited: bool
     limiting_boundary: EnergyBoundary | None
+
+
+def _retention_terms(
+    self_discharge_rate_per_hour: float,
+    duration_hours: float,
+) -> tuple[float, float]:
+    """Return exponential retention and constant-power influence in hours."""
+
+    if self_discharge_rate_per_hour == 0.0:
+        return 1.0, duration_hours
+    exponent = -self_discharge_rate_per_hour * duration_hours
+    retention = math.exp(exponent)
+    equivalent_hours = -math.expm1(exponent) / self_discharge_rate_per_hour
+    return retention, equivalent_hours
 
 
 def limit_active_power_by_energy(
@@ -76,36 +101,84 @@ def limit_active_power_by_energy(
         raise ValueError("duration_minutes must be finite and positive")
 
     duration_hours = duration_minutes / 60.0
+    initial_energy_mwh = state.initial_soc * state.energy_capacity_mwh
+    minimum_energy_mwh = state.minimum_soc * state.energy_capacity_mwh
+    maximum_energy_mwh = state.maximum_soc * state.energy_capacity_mwh
+    retention, equivalent_hours = _retention_terms(
+        state.self_discharge_rate_per_hour,
+        duration_hours,
+    )
+    loss_only_ending_energy_mwh = (
+        initial_energy_mwh * retention - state.auxiliary_load_mw * equivalent_hours
+    )
+
     if requested_active_mw > 0.0:
-        available_stored_energy_mwh = (
-            state.initial_soc - state.minimum_soc
-        ) * state.energy_capacity_mwh
-        maximum_discharge_mw = (
-            available_stored_energy_mwh * state.discharge_efficiency / duration_hours
+        available_stored_energy_mwh = loss_only_ending_energy_mwh - minimum_energy_mwh
+        if available_stored_energy_mwh < -1e-12:
+            raise ValueError(
+                "auxiliary and self-discharge losses cross minimum_soc before "
+                "applying requested discharge"
+            )
+        maximum_discharge_mw = max(
+            0.0,
+            available_stored_energy_mwh * state.discharge_efficiency / equivalent_hours,
         )
         delivered_active_mw = min(requested_active_mw, maximum_discharge_mw)
-        stored_energy_change_mwh = (
+        dispatch_stored_energy_change_mwh = (
             -delivered_active_mw * duration_hours / state.discharge_efficiency
         )
     elif requested_active_mw < 0.0:
-        available_storage_room_mwh = (
-            state.maximum_soc - state.initial_soc
-        ) * state.energy_capacity_mwh
-        maximum_charge_mw = available_storage_room_mwh / (
-            state.charge_efficiency * duration_hours
+        available_storage_room_mwh = maximum_energy_mwh - loss_only_ending_energy_mwh
+        maximum_charge_mw = max(
+            0.0,
+            available_storage_room_mwh / (state.charge_efficiency * equivalent_hours),
         )
         delivered_active_mw = max(requested_active_mw, -maximum_charge_mw)
-        stored_energy_change_mwh = (
+        dispatch_stored_energy_change_mwh = (
             -delivered_active_mw * duration_hours * state.charge_efficiency
         )
     else:
         delivered_active_mw = 0.0
-        stored_energy_change_mwh = 0.0
+        dispatch_stored_energy_change_mwh = 0.0
 
-    ending_soc = state.initial_soc + (
-        stored_energy_change_mwh / state.energy_capacity_mwh
+    if delivered_active_mw > 0.0:
+        dispatch_stored_power_mw = -delivered_active_mw / state.discharge_efficiency
+    else:
+        dispatch_stored_power_mw = -delivered_active_mw * state.charge_efficiency
+    ending_energy_mwh = (
+        loss_only_ending_energy_mwh + dispatch_stored_power_mw * equivalent_hours
     )
-    ending_soc = min(state.maximum_soc, max(state.minimum_soc, ending_soc))
+    if ending_energy_mwh < minimum_energy_mwh - 1e-10:
+        if requested_active_mw == 0.0:
+            raise ValueError(
+                "auxiliary and self-discharge losses cross minimum_soc without "
+                "a charging request"
+            )
+        raise ValueError(
+            "requested charging power is insufficient to cover auxiliary and "
+            "self-discharge losses before minimum_soc"
+        )
+    if ending_energy_mwh > maximum_energy_mwh + 1e-10:
+        raise RuntimeError("energy limiter failed to enforce maximum_soc")
+    ending_energy_mwh = min(
+        maximum_energy_mwh,
+        max(minimum_energy_mwh, ending_energy_mwh),
+    )
+
+    auxiliary_energy_mwh = state.auxiliary_load_mw * duration_hours
+    stored_energy_change_mwh = ending_energy_mwh - initial_energy_mwh
+    if state.self_discharge_rate_per_hour == 0.0:
+        self_discharge_energy_mwh = 0.0
+    else:
+        self_discharge_energy_mwh = (
+            dispatch_stored_energy_change_mwh
+            - auxiliary_energy_mwh
+            - stored_energy_change_mwh
+        )
+        if self_discharge_energy_mwh < -1e-12:
+            raise RuntimeError("self-discharge energy must be nonnegative")
+        self_discharge_energy_mwh = max(0.0, self_discharge_energy_mwh)
+    ending_soc = ending_energy_mwh / state.energy_capacity_mwh
     energy_limited = not math.isclose(
         delivered_active_mw,
         requested_active_mw,
@@ -125,6 +198,9 @@ def limit_active_power_by_energy(
         duration_minutes=duration_minutes,
         initial_soc=state.initial_soc,
         ending_soc=ending_soc,
+        dispatch_stored_energy_change_mwh=dispatch_stored_energy_change_mwh,
+        auxiliary_energy_mwh=auxiliary_energy_mwh,
+        self_discharge_energy_mwh=self_discharge_energy_mwh,
         stored_energy_change_mwh=stored_energy_change_mwh,
         power_shortfall_mw=abs(requested_active_mw - delivered_active_mw),
         energy_limited=energy_limited,
@@ -144,6 +220,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--maximum-soc", type=float, default=0.90)
     parser.add_argument("--charge-efficiency", type=float, default=0.95)
     parser.add_argument("--discharge-efficiency", type=float, default=0.95)
+    parser.add_argument("--auxiliary-load-mw", type=float, default=0.0)
+    parser.add_argument("--self-discharge-rate-per-hour", type=float, default=0.0)
     return parser.parse_args(argv)
 
 
@@ -156,6 +234,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         maximum_soc=args.maximum_soc,
         charge_efficiency=args.charge_efficiency,
         discharge_efficiency=args.discharge_efficiency,
+        auxiliary_load_mw=args.auxiliary_load_mw,
+        self_discharge_rate_per_hour=args.self_discharge_rate_per_hour,
     )
     result = limit_active_power_by_energy(
         args.active_mw,
@@ -172,6 +252,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Limiting boundary: {boundary}")
     print(f"Initial SOC: {result.initial_soc:.4f}")
     print(f"Ending SOC: {result.ending_soc:.4f}")
+    print(
+        "Dispatch stored-energy change: "
+        f"{result.dispatch_stored_energy_change_mwh:.3f} MWh"
+    )
+    print(f"Auxiliary energy: {result.auxiliary_energy_mwh:.3f} MWh")
+    print(f"Self-discharge energy: {result.self_discharge_energy_mwh:.3f} MWh")
     print(f"Stored energy change: {result.stored_energy_change_mwh:.3f} MWh")
     print(f"Power shortfall: {result.power_shortfall_mw:.3f} MW")
     return 0
