@@ -89,6 +89,22 @@ def audit_reserve_sequence(
         raise ValueError(
             "baseline_active_mw and interval_duration_minutes must have equal lengths"
         )
+    if not math.isfinite(response_duration_minutes):
+        raise ValueError("response_duration_minutes must be finite")
+    if response_duration_minutes <= 0.0:
+        raise ValueError("response_duration_minutes must be positive")
+    for name, value in {
+        "maximum_discharge_mw": maximum_discharge_mw,
+        "maximum_charge_mw": maximum_charge_mw,
+    }.items():
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+        if value < 0.0:
+            raise ValueError(f"{name} must be nonnegative")
+    if any(not math.isfinite(value) for value in durations):
+        raise ValueError("interval_duration_minutes must be finite")
+    if any(value <= 0.0 for value in durations):
+        raise ValueError("interval_duration_minutes must be positive")
     if reactive_power_mvar_profile is None:
         reactive_profile = (reactive_power_mvar,) * len(baselines)
     else:
