@@ -527,7 +527,9 @@ estimate, warranty interpretation, or remaining-life prediction.
 discharge limits into sustained upward and downward active-power reserve around
 a feasible baseline. It evaluates the configured response duration through the
 same SOC and standing-loss limiter, so a result distinguishes a power-limited
-reserve from one constrained by stored-energy headroom.
+reserve from one constrained by stored-energy headroom. An optional circular,
+symmetric sampled, or directional P-Q boundary also preserves a fixed reactive
+power obligation and distinguishes capability-limited reserve.
 
 Run a 30-minute assessment around a 10 MW discharge baseline:
 
@@ -556,11 +558,38 @@ the sustained discharge limit minus the baseline. Downward reserve is the
 baseline minus the sustained charge limit, so a discharging baseline can have
 more downward headroom than the charge limit magnitude alone.
 
+For example, holding 80 MVAr on a 100 MVA circular boundary leaves 60 MW in
+either active-power direction. With ample stored energy, the same 10 MW
+baseline therefore has 50 MW upward and 70 MW downward reserve:
+
+```powershell
+python models/reserve_headroom.py `
+  --baseline-active-mw 10 --duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 1000 --initial-soc 0.50 `
+  --reactive-mvar 80 --limit-mva 100
+```
+
+```text
+Reactive power obligation: 80.000 MVAr
+Upward active-power limit: 60.000 MW
+Downward active-power limit: -60.000 MW
+Upward capability limited: true
+Downward capability limited: true
+```
+
+Use `--curve-csv` for the symmetric sampled boundary or
+`--directional-curve-csv` for the four-quadrant envelope. Reactive power is held
+with reactive priority; the audit rejects a reactive obligation or baseline
+that the selected boundary cannot deliver. Capability is applied before the
+energy limiter, so curtailment by each stage remains independently visible.
+
 The baseline must itself remain feasible for the full response duration. This
 reference evaluates replacement setpoints from the initial state; it does not
-model activation delay, ramping, P-Q competition, thermal derating, reserve
-recovery, simultaneous services, or probabilistic availability. Compose those
-constraints separately before making a market or grid-code claim.
+model activation delay, ramping, time-varying reactive dispatch, thermal
+derating, reserve recovery, simultaneous services, or probabilistic
+availability. Compose those constraints separately before making a market or
+grid-code claim.
 
 ## Reserve Sequence Audit
 
@@ -596,8 +625,12 @@ The baseline schedule is a firm input: an interval is rejected if its baseline
 cannot be delivered for the full schedule duration. Reserve limits are assessed
 from interval-start SOC and represent replacement setpoints held for the stated
 response duration; they do not simulate activation energy in addition to the
-baseline trajectory. Ramping, P-Q competition, temperature derating, recovery
-requirements, and overlapping reserve activations remain separate constraints.
+baseline trajectory. Ramping, time-varying reactive dispatch, temperature
+derating, recovery requirements, and overlapping reserve activations remain
+separate constraints. The same `--reactive-mvar` and mutually exclusive P-Q
+boundary arguments carry a fixed reactive obligation through every interval;
+the summary reports how many upward and downward intervals are capability
+limited independently of their energy-limit counts.
 
 ## Multi-Service Grid-Support Sequence
 
