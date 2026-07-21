@@ -625,12 +625,29 @@ The baseline schedule is a firm input: an interval is rejected if its baseline
 cannot be delivered for the full schedule duration. Reserve limits are assessed
 from interval-start SOC and represent replacement setpoints held for the stated
 response duration; they do not simulate activation energy in addition to the
-baseline trajectory. Ramping, time-varying reactive dispatch, temperature
-derating, recovery requirements, and overlapping reserve activations remain
-separate constraints. The same `--reactive-mvar` and mutually exclusive P-Q
-boundary arguments carry a fixed reactive obligation through every interval;
-the summary reports how many upward and downward intervals are capability
-limited independently of their energy-limit counts.
+baseline trajectory. Ramping, temperature derating, recovery requirements, and
+overlapping reserve activations remain separate constraints. Use
+`--reactive-mvar` to carry one fixed obligation through every interval, or
+`--reactive-mvar-profile` with one comma-separated MVAr value per baseline
+interval when the voltage-support obligation changes during the schedule. A
+nonzero reactive obligation requires one of the mutually exclusive P-Q boundary
+arguments. The interval evidence prints the applied reactive value and the
+summary reports how many upward and downward intervals are capability-limited
+independently of their energy-limit counts.
+
+For example, assess a schedule that begins without reactive support and then
+must hold 80 MVAr:
+
+```powershell
+python models/reserve_sequence.py `
+  --baseline-active-mw-profile 10,10 `
+  --interval-duration-minutes-profile 15,15 `
+  --reactive-mvar-profile 0,80 `
+  --response-duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 1000 --initial-soc 0.5 `
+  --limit-mva 100
+```
 
 ## Multi-Service Grid-Support Sequence
 

@@ -48,7 +48,7 @@ class ReserveSequenceAudit:
 
     intervals: tuple[ReserveSequenceInterval, ...]
     response_duration_minutes: float
-    reactive_power_mvar: float
+    reactive_power_mvar_profile: tuple[float, ...]
     initial_soc: float
     ending_soc: float
     total_schedule_duration_minutes: float
@@ -76,6 +76,7 @@ def audit_reserve_sequence(
     state: StorageEnergyState,
     *,
     reactive_power_mvar: float = 0.0,
+    reactive_power_mvar_profile: Sequence[float] | None = None,
     capability_boundary: CapabilityBoundary | None = None,
 ) -> ReserveSequenceAudit:
     """Assess sustained reserve before each baseline interval and carry SOC."""
@@ -88,12 +89,26 @@ def audit_reserve_sequence(
         raise ValueError(
             "baseline_active_mw and interval_duration_minutes must have equal lengths"
         )
+    if reactive_power_mvar_profile is None:
+        reactive_profile = (reactive_power_mvar,) * len(baselines)
+    else:
+        reactive_profile = tuple(reactive_power_mvar_profile)
+        if reactive_power_mvar != 0.0:
+            raise ValueError(
+                "reactive_power_mvar must be zero when reactive_power_mvar_profile is set"
+            )
+        if len(reactive_profile) != len(baselines):
+            raise ValueError(
+                "reactive_power_mvar_profile and baseline_active_mw must have equal lengths"
+            )
+    if any(not math.isfinite(value) for value in reactive_profile):
+        raise ValueError("reactive_power_mvar_profile values must be finite")
 
     state.validate()
     interval_results: list[ReserveSequenceInterval] = []
     current_state = state
-    for index, (baseline_mw, interval_minutes) in enumerate(
-        zip(baselines, durations, strict=True),
+    for index, (baseline_mw, interval_minutes, reactive_mvar) in enumerate(
+        zip(baselines, durations, reactive_profile, strict=True),
         start=1,
     ):
         reserve = calculate_reserve_headroom(
@@ -102,7 +117,7 @@ def audit_reserve_sequence(
             maximum_discharge_mw=maximum_discharge_mw,
             maximum_charge_mw=maximum_charge_mw,
             state=current_state,
-            reactive_power_mvar=reactive_power_mvar,
+            reactive_power_mvar=reactive_mvar,
             capability_boundary=capability_boundary,
         )
         baseline_dispatch = limit_active_power_by_energy(
@@ -148,7 +163,7 @@ def audit_reserve_sequence(
     return ReserveSequenceAudit(
         intervals=intervals,
         response_duration_minutes=response_duration_minutes,
-        reactive_power_mvar=reactive_power_mvar,
+        reactive_power_mvar_profile=reactive_profile,
         initial_soc=state.initial_soc,
         ending_soc=ending_soc,
         total_schedule_duration_minutes=math.fsum(durations),
@@ -220,6 +235,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=_parse_number_series,
         required=True,
     )
+    parser.add_argument("--reactive-mvar-profile", type=_parse_number_series)
     parser.add_argument("--response-duration-minutes", type=float, required=True)
     parser.add_argument("--maximum-discharge-mw", type=float, required=True)
     parser.add_argument("--maximum-charge-mw", type=float, required=True)
@@ -254,12 +270,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             self_discharge_rate_per_hour=args.self_discharge_rate_per_hour,
         ),
         reactive_power_mvar=args.reactive_mvar,
+        reactive_power_mvar_profile=args.reactive_mvar_profile,
         capability_boundary=capability_boundary_from_args(args),
     )
 
     print(f"Intervals: {len(result.intervals)}")
     print(f"Response duration: {result.response_duration_minutes:.3f} minutes")
-    print(f"Reactive power obligation: {result.reactive_power_mvar:.3f} MVAr")
+    print(
+        "Reactive power profile: "
+        + ", ".join(f"{value:.3f}" for value in result.reactive_power_mvar_profile)
+        + " MVAr"
+    )
     print(f"Initial SOC: {result.initial_soc:.4f}")
     print(f"Ending SOC: {result.ending_soc:.4f}")
     print(f"Baseline AC energy: {result.baseline_ac_energy_mwh:.3f} MWh")
@@ -290,6 +311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             f"Interval {interval.index}: "
             f"baseline={interval.reserve.baseline_active_mw:.3f} MW, "
+            f"reactive={interval.reserve.reactive_power_mvar:.3f} MVAr, "
             f"initial_soc={interval.baseline_dispatch.initial_soc:.4f}, "
             f"ending_soc={interval.baseline_dispatch.ending_soc:.4f}, "
             f"upward={interval.reserve.upward_reserve_mw:.3f} MW, "
