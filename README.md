@@ -97,8 +97,8 @@ LICENSE
 ## Run The Executable Reference
 
 The dependency-free allocator demonstrates active-priority, reactive-priority,
-and proportional handling of commands outside a circular MVA limit or sampled
-piecewise P-Q envelope:
+and proportional handling of commands outside a circular MVA limit, symmetric
+sampled curve, or directional four-quadrant P-Q envelope:
 
 ```powershell
 python models/pq_capability.py `
@@ -106,6 +106,10 @@ python models/pq_capability.py `
 python models/pq_capability.py `
   --active-mw 80 --reactive-mvar 80 `
   --curve-csv models/data/illustrative_capability_curve.csv --priority active
+python models/pq_capability.py `
+  --active-mw -65 --reactive-mvar -70 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv --priority active
 python models/volt_var.py `
   --voltage-pu 0.95 --active-mw 90 --limit-mva 100
 python models/frequency_watt.py `

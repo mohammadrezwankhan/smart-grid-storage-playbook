@@ -42,6 +42,14 @@ jobs:
           --curve-csv models/data/illustrative_capability_curve.csv
           --priority active
 
+      - name: Run directional capability envelope
+        run: >-
+          python models/pq_capability.py
+          --active-mw -65 --reactive-mvar -70
+          --directional-curve-csv
+          models/data/illustrative_directional_capability.csv
+          --priority active
+
       - name: Check Markdown links
         uses: lycheeverse/lychee-action@v2
         with:
