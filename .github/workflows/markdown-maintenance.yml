@@ -42,6 +42,15 @@ jobs:
           --energy-capacity-mwh 100 --initial-soc 0.8
           --auxiliary-load-mw 2 --self-discharge-rate-per-hour 0.01
 
+      - name: Run energy throughput reference
+        run: >-
+          python models/energy_sequence.py
+          --active-mw-profile 50,50,50,-40
+          --duration-minutes-profile 15,15,15,30
+          --energy-capacity-mwh 100 --initial-soc 0.5
+          --minimum-soc 0.2 --charge-efficiency 0.8
+          --discharge-efficiency 1
+
       - name: Run sampled capability envelope
         run: >-
           python models/pq_capability.py
