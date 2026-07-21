@@ -36,6 +36,15 @@ class EnergySequenceTests(unittest.TestCase):
         self.assertAlmostEqual(result.requested_ac_energy_mwh, 17.5)
         self.assertAlmostEqual(result.delivered_ac_energy_mwh, 10.0)
         self.assertAlmostEqual(result.curtailed_ac_energy_mwh, 7.5)
+        self.assertAlmostEqual(result.delivered_discharge_ac_energy_mwh, 30.0)
+        self.assertAlmostEqual(result.delivered_charge_ac_energy_mwh, 20.0)
+        self.assertAlmostEqual(result.ac_energy_throughput_mwh, 50.0)
+        self.assertAlmostEqual(result.stored_discharge_energy_mwh, 30.0)
+        self.assertAlmostEqual(result.stored_charge_energy_mwh, 16.0)
+        self.assertAlmostEqual(result.stored_energy_throughput_mwh, 46.0)
+        self.assertAlmostEqual(result.conversion_loss_mwh, 4.0)
+        self.assertAlmostEqual(result.throughput_equivalent_full_cycles, 0.23)
+        self.assertAlmostEqual(result.conversion_balance_error_mwh, 0.0)
         self.assertAlmostEqual(result.stored_energy_change_mwh, -14.0)
         self.assertAlmostEqual(result.ending_soc, 0.36)
         self.assertAlmostEqual(result.soc_balance_error, 0.0)
@@ -53,6 +62,24 @@ class EnergySequenceTests(unittest.TestCase):
         self.assertEqual(result.intervals, (expected,))
         self.assertEqual(result.initial_soc, state.initial_soc)
         self.assertEqual(result.ending_soc, expected.ending_soc)
+
+    def test_soc_boundary_roundoff_does_not_break_the_next_interval(self):
+        state = StorageEnergyState(
+            energy_capacity_mwh=0.1,
+            initial_soc=0.50,
+            minimum_soc=0.10,
+            maximum_soc=0.75,
+            charge_efficiency=1.0,
+        )
+        result = simulate_energy_dispatch_sequence(
+            (-1.0, 0.0),
+            (60.0, 1.0),
+            state,
+        )
+
+        self.assertEqual(result.intervals[0].ending_soc, state.maximum_soc)
+        self.assertEqual(result.intervals[1].initial_soc, state.maximum_soc)
+        self.assertLessEqual(result.ending_soc, state.maximum_soc)
 
     def test_split_idle_intervals_match_one_exact_loss_interval(self):
         state = StorageEnergyState(
@@ -75,6 +102,35 @@ class EnergySequenceTests(unittest.TestCase):
             combined.self_discharge_energy_mwh,
         )
         self.assertEqual(split.dispatch_stored_energy_change_mwh, 0.0)
+        self.assertEqual(split.ac_energy_throughput_mwh, 0.0)
+        self.assertEqual(split.stored_energy_throughput_mwh, 0.0)
+        self.assertEqual(split.conversion_loss_mwh, 0.0)
+        self.assertEqual(split.throughput_equivalent_full_cycles, 0.0)
+
+    def test_asymmetric_efficiencies_close_conversion_and_throughput_balances(self):
+        result = simulate_energy_dispatch_sequence(
+            (18.0, -20.0),
+            (60.0, 60.0),
+            StorageEnergyState(
+                100.0,
+                0.50,
+                minimum_soc=0.0,
+                maximum_soc=1.0,
+                charge_efficiency=0.80,
+                discharge_efficiency=0.90,
+            ),
+        )
+
+        self.assertAlmostEqual(result.delivered_discharge_ac_energy_mwh, 18.0)
+        self.assertAlmostEqual(result.delivered_charge_ac_energy_mwh, 20.0)
+        self.assertAlmostEqual(result.ac_energy_throughput_mwh, 38.0)
+        self.assertAlmostEqual(result.stored_discharge_energy_mwh, 20.0)
+        self.assertAlmostEqual(result.stored_charge_energy_mwh, 16.0)
+        self.assertAlmostEqual(result.stored_energy_throughput_mwh, 36.0)
+        self.assertAlmostEqual(result.conversion_loss_mwh, 6.0)
+        self.assertAlmostEqual(result.throughput_equivalent_full_cycles, 0.18)
+        self.assertAlmostEqual(result.conversion_balance_error_mwh, 0.0)
+        self.assertAlmostEqual(result.ending_soc, 0.46)
 
     def test_sequence_loss_aggregates_close_energy_identity(self):
         result = simulate_energy_dispatch_sequence(
@@ -201,6 +257,11 @@ class EnergySequenceTests(unittest.TestCase):
         self.assertIn("Ending SOC: 0.3600", output)
         self.assertIn("Delivered AC energy: 10.000 MWh", output)
         self.assertIn("Curtailed AC energy: 7.500 MWh", output)
+        self.assertIn("AC energy throughput: 50.000 MWh", output)
+        self.assertIn("Stored energy throughput: 46.000 MWh", output)
+        self.assertIn("Conversion loss: 4.000 MWh", output)
+        self.assertIn("Throughput-equivalent full cycles: 0.230000", output)
+        self.assertIn("Conversion balance error: 0.000e+00 MWh", output)
         self.assertIn(
             "Interval 3: requested=50.000 MW, delivered=20.000 MW",
             output,

@@ -485,6 +485,10 @@ Ending SOC: 0.3600
 Requested AC energy: 17.500 MWh
 Delivered AC energy: 10.000 MWh
 Curtailed AC energy: 7.500 MWh
+AC energy throughput: 50.000 MWh
+Stored energy throughput: 46.000 MWh
+Conversion loss: 4.000 MWh
+Throughput-equivalent full cycles: 0.230000
 Stored energy change: -14.000 MWh
 ```
 
@@ -493,11 +497,29 @@ charging. Curtailed energy is the absolute requested-versus-delivered gap, so
 it remains nonnegative in either direction. `soc_balance_error` independently
 reconstructs final SOC from cumulative stored-energy change.
 
+The sequence also separates positive discharge and charge magnitudes on the AC
+and stored-energy sides. AC throughput is their AC-side sum. Stored-energy
+throughput is the sum of battery-side dispatch discharge and charge after the
+configured conversion efficiencies. Conversion loss closes the independent
+identity:
+
+```text
+net delivered AC energy + dispatch stored-energy change + conversion loss = 0
+```
+
+`throughput_equivalent_full_cycles` divides stored-energy throughput by twice
+the nominal energy capacity. One full discharge plus one full recharge is
+therefore one throughput-equivalent cycle. Auxiliary demand and self-discharge
+remain separately reported standing losses and do not increase this dispatch
+throughput metric.
+
 This is a forward audit of a supplied power trajectory, not a scheduler or
 optimizer. It does not choose prices, services, or interval requests, and it
 does not compose frequency, ramp, or P-Q constraints across time. The constant
 loss assumptions and nonlinear-efficiency, degradation, thermal, and capacity
-limitations of the single-interval model still apply.
+limitations of the single-interval model still apply. The equivalent-cycle
+value is an accounting normalization, not a rainflow cycle count, degradation
+estimate, warranty interpretation, or remaining-life prediction.
 
 ## Multi-Service Grid-Support Sequence
 
