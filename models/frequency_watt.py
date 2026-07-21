@@ -19,6 +19,19 @@ except ModuleNotFoundError:
     )
 
 try:
+    from models.measurement_filter import (
+        FirstOrderFilterConfig,
+        FirstOrderFilterStep,
+        filter_first_order_step,
+    )
+except ModuleNotFoundError:
+    from measurement_filter import (
+        FirstOrderFilterConfig,
+        FirstOrderFilterStep,
+        filter_first_order_step,
+    )
+
+try:
     from models.pq_capability import (
         CapabilityResult,
         PowerPriority,
@@ -98,6 +111,7 @@ class FrequencyWattCurve:
 @dataclass(frozen=True)
 class FrequencyWattDispatch:
     frequency_hz: float
+    control_frequency_hz: float
     baseline_active_mw: float
     droop_adjustment_mw: float
     unconstrained_active_mw: float
@@ -105,6 +119,7 @@ class FrequencyWattDispatch:
     ramp_bounded_active_mw: float
     bounded_active_mw: float
     storage_power_limited: bool
+    frequency_filter: FirstOrderFilterStep | None
     ramp: RampLimitedDispatch | None
     energy: EnergyLimitedDispatch | None
     delivered_energy: EnergyLimitedDispatch | None
@@ -123,13 +138,47 @@ def dispatch_frequency_watt(
     ramp_limits: RampRateLimits | None = None,
     previous_active_mw: float | None = None,
     ramp_interval_seconds: float | None = None,
+    frequency_filter_config: FirstOrderFilterConfig | None = None,
+    previous_filtered_frequency_hz: float | None = None,
+    measurement_interval_seconds: float | None = None,
 ) -> FrequencyWattDispatch:
-    """Evaluate frequency response with optional ramp and energy enforcement."""
+    """Evaluate frequency response with optional measurement and plant limits."""
 
     if not math.isfinite(baseline_active_mw):
         raise ValueError("baseline_active_mw must be finite")
+    if not math.isfinite(frequency_hz) or frequency_hz <= 0.0:
+        raise ValueError("frequency_hz must be finite and positive")
 
-    adjustment_mw = curve.active_adjustment_mw(frequency_hz)
+    filter_inputs = (
+        frequency_filter_config,
+        previous_filtered_frequency_hz,
+        measurement_interval_seconds,
+    )
+    if any(value is not None for value in filter_inputs) and not all(
+        value is not None for value in filter_inputs
+    ):
+        raise ValueError(
+            "frequency_filter_config, previous_filtered_frequency_hz, and "
+            "measurement_interval_seconds must be provided together"
+        )
+    frequency_filter = None
+    control_frequency_hz = frequency_hz
+    if (
+        frequency_filter_config is not None
+        and previous_filtered_frequency_hz is not None
+        and measurement_interval_seconds is not None
+    ):
+        if previous_filtered_frequency_hz <= 0.0:
+            raise ValueError("previous_filtered_frequency_hz must be positive")
+        frequency_filter = filter_first_order_step(
+            frequency_hz,
+            previous_filtered_frequency_hz,
+            measurement_interval_seconds,
+            frequency_filter_config,
+        )
+        control_frequency_hz = frequency_filter.output_value
+
+    adjustment_mw = curve.active_adjustment_mw(control_frequency_hz)
     unconstrained_active_mw = baseline_active_mw + adjustment_mw
     power_bounded_active_mw = max(
         -curve.max_charge_mw,
@@ -193,6 +242,7 @@ def dispatch_frequency_watt(
         )
     return FrequencyWattDispatch(
         frequency_hz=frequency_hz,
+        control_frequency_hz=control_frequency_hz,
         baseline_active_mw=baseline_active_mw,
         droop_adjustment_mw=adjustment_mw,
         unconstrained_active_mw=unconstrained_active_mw,
@@ -200,6 +250,7 @@ def dispatch_frequency_watt(
         ramp_bounded_active_mw=ramp_bounded_active_mw,
         bounded_active_mw=bounded_active_mw,
         storage_power_limited=storage_power_limited,
+        frequency_filter=frequency_filter,
         ramp=ramp,
         energy=energy,
         delivered_energy=delivered_energy,
@@ -225,6 +276,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full-response-deviation-hz", type=float, default=0.50)
     parser.add_argument("--max-discharge-mw", type=float, default=100.0)
     parser.add_argument("--max-charge-mw", type=float, default=100.0)
+    parser.add_argument("--previous-filtered-frequency-hz", type=float)
+    parser.add_argument("--measurement-interval-seconds", type=float)
+    parser.add_argument("--frequency-filter-time-constant-seconds", type=float)
     parser.add_argument("--previous-active-mw", type=float)
     parser.add_argument("--ramp-interval-seconds", type=float)
     parser.add_argument("--ramp-up-mw-per-minute", type=float)
@@ -306,6 +360,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.ramp_up_mw_per_minute,
             args.ramp_down_mw_per_minute,
         )
+    frequency_filter_inputs = (
+        args.previous_filtered_frequency_hz,
+        args.measurement_interval_seconds,
+        args.frequency_filter_time_constant_seconds,
+    )
+    if any(value is not None for value in frequency_filter_inputs) and not all(
+        value is not None for value in frequency_filter_inputs
+    ):
+        raise ValueError(
+            "previous_filtered_frequency_hz, measurement_interval_seconds, and "
+            "frequency_filter_time_constant_seconds must be provided together"
+        )
+    frequency_filter_config = None
+    if args.frequency_filter_time_constant_seconds is not None:
+        frequency_filter_config = FirstOrderFilterConfig(
+            args.frequency_filter_time_constant_seconds
+        )
     result = dispatch_frequency_watt(
         frequency_hz=args.frequency_hz,
         baseline_active_mw=args.baseline_active_mw,
@@ -318,9 +389,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         ramp_limits=ramp_limits,
         previous_active_mw=args.previous_active_mw,
         ramp_interval_seconds=args.ramp_interval_seconds,
+        frequency_filter_config=frequency_filter_config,
+        previous_filtered_frequency_hz=args.previous_filtered_frequency_hz,
+        measurement_interval_seconds=args.measurement_interval_seconds,
     )
     capability = result.capability
     print(f"Frequency: {result.frequency_hz:.3f} Hz")
+    if result.frequency_filter is not None:
+        print(
+            "Previous filtered frequency: "
+            f"{result.frequency_filter.previous_output_value:.3f} Hz"
+        )
+        print(f"Control frequency: {result.control_frequency_hz:.3f} Hz")
+        print(
+            f"Frequency-filter decay factor: {result.frequency_filter.decay_factor:.6f}"
+        )
     print(f"Droop adjustment: {result.droop_adjustment_mw:.3f} MW")
     print(f"Unconstrained active request: {result.unconstrained_active_mw:.3f} MW")
     if result.ramp is not None or result.energy is not None:
