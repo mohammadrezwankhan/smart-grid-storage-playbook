@@ -11,6 +11,7 @@ from models.frequency_watt import (
     main,
 )
 from models.energy_limits import EnergyBoundary, StorageEnergyState
+from models.measurement_filter import FirstOrderFilterConfig
 from models.pq_capability import PowerPriority
 from models.ramp_limits import RampDirection, RampRateLimits
 
@@ -21,6 +22,59 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertEqual(curve.active_adjustment_mw(49.95), 0.0)
         self.assertEqual(curve.active_adjustment_mw(50.00), 0.0)
         self.assertEqual(curve.active_adjustment_mw(50.05), 0.0)
+
+    def test_frequency_filter_applies_before_droop(self):
+        unfiltered = dispatch_frequency_watt(49.5, 0.0, 0.0, 100.0)
+        filtered = dispatch_frequency_watt(
+            49.5,
+            0.0,
+            0.0,
+            100.0,
+            frequency_filter_config=FirstOrderFilterConfig(1.0),
+            previous_filtered_frequency_hz=50.0,
+            measurement_interval_seconds=0.1,
+        )
+
+        self.assertEqual(unfiltered.droop_adjustment_mw, 100.0)
+        self.assertAlmostEqual(filtered.control_frequency_hz, 49.95241870901798)
+        self.assertEqual(filtered.droop_adjustment_mw, 0.0)
+        self.assertIsNotNone(filtered.frequency_filter)
+        assert filtered.frequency_filter is not None
+        self.assertAlmostEqual(
+            filtered.frequency_filter.decay_factor,
+            math.exp(-0.1),
+        )
+
+    def test_frequency_filter_configuration_is_validated(self):
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                49.5,
+                0.0,
+                0.0,
+                100.0,
+                frequency_filter_config=FirstOrderFilterConfig(1.0),
+            )
+        with self.assertRaisesRegex(ValueError, "must be positive"):
+            dispatch_frequency_watt(
+                49.5,
+                0.0,
+                0.0,
+                100.0,
+                frequency_filter_config=FirstOrderFilterConfig(1.0),
+                previous_filtered_frequency_hz=0.0,
+                measurement_interval_seconds=0.1,
+            )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            main(
+                [
+                    "--frequency-hz",
+                    "49.5",
+                    "--limit-mva",
+                    "100",
+                    "--previous-filtered-frequency-hz",
+                    "50",
+                ]
+            )
 
     def test_under_frequency_response_interpolates_and_saturates(self):
         curve = FrequencyWattCurve()
@@ -303,6 +357,34 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Ramp-bounded active request: 40.000 MW", output)
         self.assertIn("Ramp limited: true", output)
         self.assertIn("Ramp limiting direction: ramp_up", output)
+
+    def test_cli_reports_filtered_control_frequency(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "49.5",
+                    "--baseline-active-mw",
+                    "0",
+                    "--reactive-mvar",
+                    "0",
+                    "--limit-mva",
+                    "100",
+                    "--previous-filtered-frequency-hz",
+                    "50",
+                    "--measurement-interval-seconds",
+                    "0.1",
+                    "--frequency-filter-time-constant-seconds",
+                    "1",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Frequency: 49.500 Hz", output)
+        self.assertIn("Control frequency: 49.952 Hz", output)
+        self.assertIn("Frequency-filter decay factor: 0.904837", output)
+        self.assertIn("Droop adjustment: 0.000 MW", output)
 
     def test_cli_rejects_partial_energy_configuration(self):
         with self.assertRaisesRegex(ValueError, "must be provided together"):
