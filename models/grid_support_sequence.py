@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import math
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Sequence
 
 try:
@@ -13,7 +14,14 @@ try:
         dispatch_frequency_watt,
     )
     from models.measurement_filter import FirstOrderFilterConfig
-    from models.pq_capability import PowerPriority
+    from models.pq_capability import (
+        DirectionalCapabilityEnvelope,
+        PiecewiseCapabilityCurve,
+        PowerPriority,
+        load_capability_curve_csv,
+        load_directional_capability_csv,
+        reactive_axis_limit_mvar,
+    )
     from models.ramp_limits import RampRateLimits
     from models.volt_var import VoltVarCurve
 except ModuleNotFoundError:
@@ -24,7 +32,14 @@ except ModuleNotFoundError:
         dispatch_frequency_watt,
     )
     from measurement_filter import FirstOrderFilterConfig
-    from pq_capability import PowerPriority
+    from pq_capability import (
+        DirectionalCapabilityEnvelope,
+        PiecewiseCapabilityCurve,
+        PowerPriority,
+        load_capability_curve_csv,
+        load_directional_capability_csv,
+        reactive_axis_limit_mvar,
+    )
     from ramp_limits import RampRateLimits
     from volt_var import VoltVarCurve
 
@@ -99,7 +114,7 @@ def simulate_grid_support_sequence(
     baseline_active_mw: Sequence[float],
     duration_minutes: Sequence[float],
     energy_state: StorageEnergyState,
-    apparent_power_limit_mva: float,
+    apparent_power_limit_mva: float | None,
     frequency_curve: FrequencyWattCurve = FrequencyWattCurve(),
     voltage_curve: VoltVarCurve = VoltVarCurve(),
     reactive_base_mvar: float | None = None,
@@ -108,6 +123,9 @@ def simulate_grid_support_sequence(
     initial_active_mw: float | None = None,
     frequency_filter_config: FirstOrderFilterConfig | None = None,
     initial_filtered_frequency_hz: float | None = None,
+    capability_envelope: (
+        PiecewiseCapabilityCurve | DirectionalCapabilityEnvelope | None
+    ) = None,
 ) -> GridSupportSequence:
     """Compose grid-support controls while carrying plant state between intervals."""
 
@@ -120,12 +138,19 @@ def simulate_grid_support_sequence(
     energy_state.validate()
     frequency_curve.validate()
     voltage_curve.validate()
-    if not math.isfinite(apparent_power_limit_mva) or apparent_power_limit_mva <= 0.0:
-        raise ValueError("apparent_power_limit_mva must be finite and positive")
-    base_mvar = (
-        apparent_power_limit_mva if reactive_base_mvar is None else reactive_base_mvar
+    if (apparent_power_limit_mva is None) == (capability_envelope is None):
+        raise ValueError(
+            "provide exactly one circular MVA limit or sampled capability envelope"
+        )
+    capability_boundary = (
+        capability_envelope
+        if capability_envelope is not None
+        else apparent_power_limit_mva
     )
-    if not math.isfinite(base_mvar) or base_mvar <= 0.0:
+    assert capability_boundary is not None
+    if reactive_base_mvar is not None and (
+        not math.isfinite(reactive_base_mvar) or reactive_base_mvar <= 0.0
+    ):
         raise ValueError("reactive_base_mvar must be finite and positive")
 
     if (ramp_limits is None) != (initial_active_mw is None):
@@ -163,7 +188,12 @@ def simulate_grid_support_sequence(
         strict=True,
     ):
         request_pu = voltage_curve.reactive_request_pu(voltage)
-        requested_reactive_mvar = request_pu * base_mvar
+        interval_base_mvar = (
+            reactive_axis_limit_mvar(capability_boundary, request_pu)
+            if reactive_base_mvar is None
+            else reactive_base_mvar
+        )
+        requested_reactive_mvar = request_pu * interval_base_mvar
         dispatch = dispatch_frequency_watt(
             frequency_hz=frequency,
             baseline_active_mw=baseline,
@@ -181,6 +211,7 @@ def simulate_grid_support_sequence(
             measurement_interval_seconds=(
                 None if frequency_filter_config is None else duration * 60.0
             ),
+            capability_envelope=capability_envelope,
         )
         assert dispatch.delivered_energy is not None
         delivered_energy = dispatch.delivered_energy
@@ -327,7 +358,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--duration-minutes-profile", type=_parse_number_series, required=True
     )
-    parser.add_argument("--limit-mva", type=float, required=True)
+    boundary = parser.add_mutually_exclusive_group(required=True)
+    boundary.add_argument("--limit-mva", type=float)
+    boundary.add_argument("--curve-csv", type=Path)
+    boundary.add_argument("--directional-curve-csv", type=Path)
     parser.add_argument("--energy-capacity-mwh", type=float, required=True)
     parser.add_argument("--initial-soc", type=float, required=True)
     parser.add_argument("--minimum-soc", type=float, default=0.10)
@@ -378,6 +412,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     baselines = args.baseline_active_mw_profile
     if baselines is None:
         baselines = (0.0,) * interval_count
+
+    capability_envelope = None
+    if args.curve_csv is not None:
+        capability_envelope = load_capability_curve_csv(args.curve_csv)
+    elif args.directional_curve_csv is not None:
+        capability_envelope = load_directional_capability_csv(
+            args.directional_curve_csv
+        )
 
     ramp_inputs = (
         args.initial_active_mw,
@@ -449,8 +491,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         initial_active_mw=args.initial_active_mw,
         frequency_filter_config=filter_config,
         initial_filtered_frequency_hz=args.initial_filtered_frequency_hz,
+        capability_envelope=capability_envelope,
     )
 
+    if isinstance(capability_envelope, DirectionalCapabilityEnvelope):
+        print(
+            "Capability model: directional envelope "
+            f"(4 quadrants, {capability_envelope.point_count} points)"
+        )
+    elif isinstance(capability_envelope, PiecewiseCapabilityCurve):
+        print(
+            "Capability model: piecewise curve "
+            f"({len(capability_envelope.points)} points)"
+        )
+    else:
+        print(f"Capability model: circular limit ({args.limit_mva:.3f} MVA)")
     print(f"Intervals: {len(result.intervals)}")
     print(f"Limited intervals: {result.limited_interval_count}")
     print(f"Total duration: {result.total_duration_minutes:.3f} minutes")

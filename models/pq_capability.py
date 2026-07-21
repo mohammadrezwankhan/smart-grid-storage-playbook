@@ -260,6 +260,9 @@ class DirectionalCapabilityEnvelope:
         return self.curves[self.quadrant_for(active_mw, reactive_mvar)]
 
 
+CapabilityBoundary = float | PiecewiseCapabilityCurve | DirectionalCapabilityEnvelope
+
+
 def _clip(value: float, limit: float) -> float:
     return max(-limit, min(limit, value))
 
@@ -443,6 +446,64 @@ def allocate_power_on_directional_envelope(
         requested_reactive_mvar,
         curve,
         priority,
+    )
+
+
+def allocate_power_on_boundary(
+    requested_active_mw: float,
+    requested_reactive_mvar: float,
+    boundary: CapabilityBoundary,
+    priority: PowerPriority | str = PowerPriority.ACTIVE,
+) -> CapabilityResult:
+    """Apply a circular, symmetric, or directional capability boundary."""
+
+    if isinstance(boundary, DirectionalCapabilityEnvelope):
+        return allocate_power_on_directional_envelope(
+            requested_active_mw,
+            requested_reactive_mvar,
+            boundary,
+            priority,
+        )
+    if isinstance(boundary, PiecewiseCapabilityCurve):
+        return allocate_power_on_curve(
+            requested_active_mw,
+            requested_reactive_mvar,
+            boundary,
+            priority,
+        )
+    if isinstance(boundary, (int, float)) and not isinstance(boundary, bool):
+        return allocate_power(
+            requested_active_mw,
+            requested_reactive_mvar,
+            float(boundary),
+            priority,
+        )
+    raise ValueError(
+        "capability boundary must be an MVA limit, piecewise curve, "
+        "or directional envelope"
+    )
+
+
+def reactive_axis_limit_mvar(
+    boundary: CapabilityBoundary,
+    reactive_mvar: float,
+) -> float:
+    """Return the applicable signed-direction reactive-axis magnitude."""
+
+    if not math.isfinite(reactive_mvar):
+        raise ValueError("reactive_mvar must be finite")
+    if isinstance(boundary, DirectionalCapabilityEnvelope):
+        return boundary.curve_for(0.0, reactive_mvar).maximum_reactive_mvar
+    if isinstance(boundary, PiecewiseCapabilityCurve):
+        return boundary.maximum_reactive_mvar
+    if isinstance(boundary, (int, float)) and not isinstance(boundary, bool):
+        limit = float(boundary)
+        if not math.isfinite(limit) or limit <= 0.0:
+            raise ValueError("apparent_power_limit_mva must be finite and positive")
+        return limit
+    raise ValueError(
+        "capability boundary must be an MVA limit, piecewise curve, "
+        "or directional envelope"
     )
 
 
