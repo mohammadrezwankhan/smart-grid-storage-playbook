@@ -319,6 +319,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--maximum-soc", type=float)
     parser.add_argument("--charge-efficiency", type=float)
     parser.add_argument("--discharge-efficiency", type=float)
+    parser.add_argument("--auxiliary-load-mw", type=float)
+    parser.add_argument("--self-discharge-rate-per-hour", type=float)
     return parser.parse_args(argv)
 
 
@@ -346,6 +348,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.maximum_soc,
         args.charge_efficiency,
         args.discharge_efficiency,
+        args.auxiliary_load_mw,
+        args.self_discharge_rate_per_hour,
     )
     required_energy_inputs = (
         args.duration_minutes,
@@ -371,6 +375,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             discharge_efficiency=(
                 0.95 if args.discharge_efficiency is None else args.discharge_efficiency
+            ),
+            auxiliary_load_mw=(
+                0.0 if args.auxiliary_load_mw is None else args.auxiliary_load_mw
+            ),
+            self_discharge_rate_per_hour=(
+                0.0
+                if args.self_discharge_rate_per_hour is None
+                else args.self_discharge_rate_per_hour
             ),
         )
     ramp_inputs = (
@@ -482,6 +494,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Energy limiting boundary: {boundary}")
         assert result.delivered_energy is not None
         print(f"Ending SOC: {result.delivered_energy.ending_soc:.4f}")
+        print(
+            f"Auxiliary energy: {result.delivered_energy.auxiliary_energy_mwh:.3f} MWh"
+        )
+        print(
+            "Self-discharge energy: "
+            f"{result.delivered_energy.self_discharge_energy_mwh:.3f} MWh"
+        )
     print(f"Capability priority: {capability.priority.value}")
     print(f"Capability limited: {str(capability.limited).lower()}")
     print(f"Delivered active power: {capability.active_mw:.3f} MW")

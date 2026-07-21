@@ -35,6 +35,13 @@ jobs:
       - name: Test executable models
         run: python -m unittest discover -s tests -v
 
+      - name: Run storage standing-loss reference
+        run: >-
+          python models/energy_limits.py
+          --active-mw 0 --duration-minutes 120
+          --energy-capacity-mwh 100 --initial-soc 0.8
+          --auxiliary-load-mw 2 --self-discharge-rate-per-hour 0.01
+
       - name: Run sampled capability envelope
         run: >-
           python models/pq_capability.py

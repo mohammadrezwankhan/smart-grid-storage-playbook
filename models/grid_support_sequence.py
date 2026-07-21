@@ -73,6 +73,9 @@ class GridSupportSequence:
     requested_reactive_service_mvarh: float
     delivered_reactive_service_mvarh: float
     reactive_shortfall_service_mvarh: float
+    dispatch_stored_energy_change_mwh: float
+    auxiliary_energy_mwh: float
+    self_discharge_energy_mwh: float
     stored_energy_change_mwh: float
     soc_balance_error: float
     limited_interval_count: int
@@ -274,6 +277,21 @@ def simulate_grid_support_sequence(
         / 60.0
         for interval in intervals
     )
+    dispatch_stored_energy_change_mwh = math.fsum(
+        interval.dispatch.delivered_energy.dispatch_stored_energy_change_mwh
+        for interval in intervals
+        if interval.dispatch.delivered_energy is not None
+    )
+    auxiliary_energy_mwh = math.fsum(
+        interval.dispatch.delivered_energy.auxiliary_energy_mwh
+        for interval in intervals
+        if interval.dispatch.delivered_energy is not None
+    )
+    self_discharge_energy_mwh = math.fsum(
+        interval.dispatch.delivered_energy.self_discharge_energy_mwh
+        for interval in intervals
+        if interval.dispatch.delivered_energy is not None
+    )
     stored_energy_change_mwh = math.fsum(
         interval.dispatch.delivered_energy.stored_energy_change_mwh
         for interval in intervals
@@ -305,6 +323,9 @@ def simulate_grid_support_sequence(
         requested_reactive_service_mvarh=requested_reactive_service_mvarh,
         delivered_reactive_service_mvarh=delivered_reactive_service_mvarh,
         reactive_shortfall_service_mvarh=reactive_shortfall_service_mvarh,
+        dispatch_stored_energy_change_mwh=dispatch_stored_energy_change_mwh,
+        auxiliary_energy_mwh=auxiliary_energy_mwh,
+        self_discharge_energy_mwh=self_discharge_energy_mwh,
         stored_energy_change_mwh=stored_energy_change_mwh,
         soc_balance_error=ending_soc - expected_ending_soc,
         limited_interval_count=sum(interval_is_limited(item) for item in intervals),
@@ -368,6 +389,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--maximum-soc", type=float, default=0.90)
     parser.add_argument("--charge-efficiency", type=float, default=0.95)
     parser.add_argument("--discharge-efficiency", type=float, default=0.95)
+    parser.add_argument("--auxiliary-load-mw", type=float, default=0.0)
+    parser.add_argument("--self-discharge-rate-per-hour", type=float, default=0.0)
     parser.add_argument("--reactive-base-mvar", type=float)
     parser.add_argument(
         "--priority",
@@ -469,6 +492,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             maximum_soc=args.maximum_soc,
             charge_efficiency=args.charge_efficiency,
             discharge_efficiency=args.discharge_efficiency,
+            auxiliary_load_mw=args.auxiliary_load_mw,
+            self_discharge_rate_per_hour=args.self_discharge_rate_per_hour,
         ),
         apparent_power_limit_mva=args.limit_mva,
         frequency_curve=FrequencyWattCurve(
@@ -526,6 +551,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         "Reactive shortfall service: "
         f"{result.reactive_shortfall_service_mvarh:.3f} MVArh"
     )
+    print(
+        "Dispatch stored-energy change: "
+        f"{result.dispatch_stored_energy_change_mwh:.3f} MWh"
+    )
+    print(f"Auxiliary energy: {result.auxiliary_energy_mwh:.3f} MWh")
+    print(f"Self-discharge energy: {result.self_discharge_energy_mwh:.3f} MWh")
     print(f"Stored energy change: {result.stored_energy_change_mwh:.3f} MWh")
     print(f"SOC balance error: {result.soc_balance_error:.3e}")
     for index, interval in enumerate(result.intervals, start=1):
