@@ -66,6 +66,21 @@ except ModuleNotFoundError:
         limit_active_power_by_ramp,
     )
 
+try:
+    from models.temperature_derating import (
+        TemperatureLimitedDispatch,
+        TemperaturePowerDeratingCurve,
+        limit_active_power_by_temperature,
+        load_temperature_derating_csv,
+    )
+except ModuleNotFoundError:
+    from temperature_derating import (
+        TemperatureLimitedDispatch,
+        TemperaturePowerDeratingCurve,
+        limit_active_power_by_temperature,
+        load_temperature_derating_csv,
+    )
+
 
 @dataclass(frozen=True)
 class FrequencyWattCurve:
@@ -130,10 +145,12 @@ class FrequencyWattDispatch:
     unconstrained_active_mw: float
     power_bounded_active_mw: float
     ramp_bounded_active_mw: float
+    temperature_bounded_active_mw: float
     bounded_active_mw: float
     storage_power_limited: bool
     frequency_filter: FirstOrderFilterStep | None
     ramp: RampLimitedDispatch | None
+    temperature_derating: TemperatureLimitedDispatch | None
     energy: EnergyLimitedDispatch | None
     delivered_energy: EnergyLimitedDispatch | None
     capability: CapabilityResult
@@ -157,6 +174,8 @@ def dispatch_frequency_watt(
     capability_envelope: (
         PiecewiseCapabilityCurve | DirectionalCapabilityEnvelope | None
     ) = None,
+    temperature_c: float | None = None,
+    temperature_derating_curve: TemperaturePowerDeratingCurve | None = None,
 ) -> FrequencyWattDispatch:
     """Evaluate frequency response with optional measurement and plant limits."""
 
@@ -164,6 +183,10 @@ def dispatch_frequency_watt(
         raise ValueError("baseline_active_mw must be finite")
     if not math.isfinite(frequency_hz) or frequency_hz <= 0.0:
         raise ValueError("frequency_hz must be finite and positive")
+    if (temperature_c is None) != (temperature_derating_curve is None):
+        raise ValueError(
+            "temperature_c and temperature_derating_curve must be provided together"
+        )
 
     filter_inputs = (
         frequency_filter_config,
@@ -234,11 +257,22 @@ def dispatch_frequency_watt(
             ramp_limits,
         )
         ramp_bounded_active_mw = ramp.delivered_active_mw
+    temperature_derating = None
+    temperature_bounded_active_mw = ramp_bounded_active_mw
+    if temperature_c is not None and temperature_derating_curve is not None:
+        temperature_derating = limit_active_power_by_temperature(
+            ramp_bounded_active_mw,
+            temperature_c,
+            curve.max_discharge_mw,
+            curve.max_charge_mw,
+            temperature_derating_curve,
+        )
+        temperature_bounded_active_mw = temperature_derating.delivered_active_mw
     energy = None
-    bounded_active_mw = ramp_bounded_active_mw
+    bounded_active_mw = temperature_bounded_active_mw
     if energy_state is not None and duration_minutes is not None:
         energy = limit_active_power_by_energy(
-            ramp_bounded_active_mw,
+            temperature_bounded_active_mw,
             duration_minutes,
             energy_state,
         )
@@ -274,10 +308,12 @@ def dispatch_frequency_watt(
         unconstrained_active_mw=unconstrained_active_mw,
         power_bounded_active_mw=power_bounded_active_mw,
         ramp_bounded_active_mw=ramp_bounded_active_mw,
+        temperature_bounded_active_mw=temperature_bounded_active_mw,
         bounded_active_mw=bounded_active_mw,
         storage_power_limited=storage_power_limited,
         frequency_filter=frequency_filter,
         ramp=ramp,
+        temperature_derating=temperature_derating,
         energy=energy,
         delivered_energy=delivered_energy,
         capability=capability,
@@ -305,6 +341,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full-response-deviation-hz", type=float, default=0.50)
     parser.add_argument("--max-discharge-mw", type=float, default=100.0)
     parser.add_argument("--max-charge-mw", type=float, default=100.0)
+    parser.add_argument("--temperature-c", type=float)
+    parser.add_argument("--temperature-derating-csv", type=Path)
     parser.add_argument("--previous-filtered-frequency-hz", type=float)
     parser.add_argument("--measurement-interval-seconds", type=float)
     parser.add_argument("--frequency-filter-time-constant-seconds", type=float)
@@ -425,6 +463,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         frequency_filter_config = FirstOrderFilterConfig(
             args.frequency_filter_time_constant_seconds
         )
+    temperature_inputs = (
+        args.temperature_c,
+        args.temperature_derating_csv,
+    )
+    if any(value is not None for value in temperature_inputs) and not all(
+        value is not None for value in temperature_inputs
+    ):
+        raise ValueError(
+            "temperature_c and temperature_derating_csv must be provided together"
+        )
+    temperature_derating_curve = None
+    if args.temperature_derating_csv is not None:
+        temperature_derating_curve = load_temperature_derating_csv(
+            args.temperature_derating_csv
+        )
     result = dispatch_frequency_watt(
         frequency_hz=args.frequency_hz,
         baseline_active_mw=args.baseline_active_mw,
@@ -441,6 +494,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         previous_filtered_frequency_hz=args.previous_filtered_frequency_hz,
         measurement_interval_seconds=args.measurement_interval_seconds,
         capability_envelope=capability_envelope,
+        temperature_c=args.temperature_c,
+        temperature_derating_curve=temperature_derating_curve,
     )
     capability = result.capability
     if isinstance(capability_envelope, DirectionalCapabilityEnvelope):
@@ -470,7 +525,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     print(f"Droop adjustment: {result.droop_adjustment_mw:.3f} MW")
     print(f"Unconstrained active request: {result.unconstrained_active_mw:.3f} MW")
-    if result.ramp is not None or result.energy is not None:
+    if (
+        result.ramp is not None
+        or result.temperature_derating is not None
+        or result.energy is not None
+    ):
         print(f"Power-bounded active request: {result.power_bounded_active_mw:.3f} MW")
     if result.ramp is not None:
         direction = (
@@ -482,6 +541,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Ramp-bounded active request: {result.ramp_bounded_active_mw:.3f} MW")
         print(f"Ramp limited: {str(result.ramp.ramp_limited).lower()}")
         print(f"Ramp limiting direction: {direction}")
+    if result.temperature_derating is not None:
+        temperature = result.temperature_derating
+        print(f"Temperature: {temperature.limits.temperature_c:.3f} C")
+        print(
+            "Sampled temperature discharge limit: "
+            f"{temperature.limits.max_discharge_mw:.3f} MW"
+        )
+        print(
+            "Sampled temperature charge limit: "
+            f"{temperature.limits.max_charge_mw:.3f} MW"
+        )
+        print(
+            "Effective temperature discharge limit: "
+            f"{temperature.effective_max_discharge_mw:.3f} MW"
+        )
+        print(
+            "Effective temperature charge limit: "
+            f"{temperature.effective_max_charge_mw:.3f} MW"
+        )
+        print(
+            "Temperature-bounded active request: "
+            f"{result.temperature_bounded_active_mw:.3f} MW"
+        )
+        print(
+            f"Temperature power limited: {str(temperature.temperature_limited).lower()}"
+        )
     print(f"Storage-bounded active request: {result.bounded_active_mw:.3f} MW")
     print(f"Storage power limited: {str(result.storage_power_limited).lower()}")
     if result.energy is not None:

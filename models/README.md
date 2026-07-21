@@ -125,11 +125,12 @@ python -m unittest discover -s tests -v
 - Every sampled quadrant curve is concave and linearly interpolated. The
   symmetric input mirrors one curve; the directional input requires four
   curves and consistent shared-axis intercepts.
-- Dynamic current limits, voltage dependence, and temperature derating are
-  not calculated internally. They can be represented only after an external
-  study supplies the applicable sampled envelope. SOC and interval-duration
-  limits can be composed through `energy_limits.py`, but are not inherent to
-  the P-Q allocator.
+- Dynamic current limits and voltage dependence are not calculated internally.
+  Temperature-dependent active-power limits can be composed through
+  `temperature_derating.py`, but only after an external study supplies the
+  applicable sampled envelope. SOC and interval-duration limits can be
+  composed through `energy_limits.py`; neither layer is inherent to the P-Q
+  allocator.
 - The allocator is static and does not model control-loop response.
 - Grid-code, protection, and plant-controller constraints remain project
   inputs.
@@ -228,11 +229,12 @@ The model is static. It excludes sensor errors, higher-order measurement
 dynamics, control-loop dynamics, recovery logic, and interactions with
 plant-level dispatch. Optional filter arguments apply a first-order frequency
 measurement filter before deadband and droop evaluation. Optional ramp
-arguments enforce asymmetric signed active-power slew limits before SOC and P-Q
-allocation. Optional energy arguments then enforce SOC reserve, response
-duration, and charge/discharge efficiency. Replace every frequency, filter,
-power, ramp, energy, efficiency, baseline, and priority assumption with
-project-controlled values before engineering use.
+arguments enforce asymmetric signed active-power slew limits. An optional
+externally supplied temperature curve then applies a hard active-power envelope
+before SOC and P-Q allocation. Optional energy arguments enforce SOC reserve,
+response duration, and charge/discharge efficiency. Replace every frequency,
+filter, power, ramp, temperature, energy, efficiency, baseline, and priority
+assumption with project-controlled values before engineering use.
 
 ## Frequency Measurement Filter
 
@@ -302,10 +304,57 @@ Ramp limiting direction: ramp_up
 
 The integrated sequence is raw measurement, optional frequency filter,
 frequency-watt request, storage charge/discharge power bound, ramp bound,
-interval energy bound, and the selected circular or sampled P-Q allocation.
-The returned `ramp`, `energy`, and `capability` records preserve each stage for
-review. The ramp interval is the time available to move from the previous
-command; it is distinct from the energy response duration.
+optional hard temperature envelope, interval energy bound, and the selected
+circular or sampled P-Q allocation. The returned `ramp`,
+`temperature_derating`, `energy`, and `capability` records preserve each stage
+for review. The ramp interval is the time available to move from the previous
+command; it is distinct from the energy response duration. A newly reduced
+temperature limit takes precedence over the ramp stage so a carried setpoint
+cannot remain outside the current operating envelope.
+
+## External Temperature Power Derating
+
+[`temperature_derating.py`](temperature_derating.py) consumes an externally
+supplied table of temperature, maximum discharge power, and maximum charge
+power. Temperatures must be strictly increasing; every power limit must be
+finite and nonnegative. The model linearly interpolates between samples and
+clamps outside temperatures to the nearest endpoint instead of extrapolating.
+It reports the bracketing temperatures, interpolation fraction, endpoint-clamp
+status, sampled limits, nameplate-constrained effective limits, and delivered
+active power.
+
+Run the committed illustrative 40 C charging case:
+
+```powershell
+python models/temperature_derating.py `
+  --active-mw -90 --temperature-c 40 `
+  --max-discharge-mw 80 --max-charge-mw 100 `
+  --curve-csv models/data/illustrative_temperature_derating.csv
+```
+
+Expected key values:
+
+```text
+Sampled discharge limit: 85.000 MW
+Sampled charge limit: 65.000 MW
+Effective discharge limit: 80.000 MW
+Effective charge limit: 65.000 MW
+Delivered active power: -65.000 MW
+Temperature limited: true
+```
+
+The committed values deliberately show different cold and hot charge/discharge
+limits. They are test data, not ratings for a battery, inverter, or thermal
+management system. The temperature input is also external: this model does not
+estimate cell, module, coolant, enclosure, or ambient temperature. Project use
+must define the measured temperature, sensor policy, hysteresis, dwell time,
+fault handling, and the study or vendor data behind every sample.
+
+Add `--temperature-c` and `--temperature-derating-csv` to
+`frequency_watt.py`, or a comma-separated `--temperature-c-profile` plus the
+same CSV to `grid_support_sequence.py`. Both inputs are required as a pair.
+The effective limit is the smaller of the sampled limit and the configured
+frequency-watt nameplate limit in each direction.
 
 ## SOC And Response-Duration Limits
 
@@ -454,11 +503,11 @@ limitations of the single-interval model still apply.
 
 [`grid_support_sequence.py`](grid_support_sequence.py) composes the existing
 frequency-watt, Volt-VAR, measurement-filter, active-power-ramp, SOC, and
-circular or sampled P-Q models over a variable-duration profile. Each interval
-starts from the prior interval's delivered ending SOC. When ramp limits or
-frequency filtering are enabled, it also starts from the prior delivered active
-power or filtered frequency, so curtailment at one control layer changes the
-next interval's reachable state.
+optional temperature-derating and circular or sampled P-Q models over a
+variable-duration profile. Each interval starts from the prior interval's
+delivered ending SOC. When ramp limits or frequency filtering are enabled, it
+also starts from the prior delivered active power or filtered frequency, so
+curtailment at one control layer changes the next interval's reachable state.
 
 Run three simultaneous frequency and voltage events with reactive-power
 priority:
@@ -529,9 +578,10 @@ SOC balance error: 0.000e+00
 
 The four delivered P/Q pairs are `(81.818, 50.000)`, `(80.000, -45.000)`,
 `(-65.000, 50.000)`, and `(-60.833, -45.000)` in MW/MVAr. Capability
-allocation remains after storage power, ramp, and energy bounds. Final SOC is
-recomputed from active power after capability curtailment, so the sequence does
-not debit energy for a pre-envelope request that the PCS cannot deliver.
+allocation remains after storage power, ramp, temperature, and energy bounds.
+Final SOC is recomputed from active power after capability curtailment, so the
+sequence does not debit energy for a pre-envelope request that the PCS cannot
+deliver.
 
 Active-energy totals preserve sign, so charging offsets discharge. Reactive
 service totals sum absolute MVArh because injection and absorption are both
@@ -540,9 +590,10 @@ delivered voltage-support work; each interval row retains the Q direction.
 The profile is an auditable control composition, not a dynamic network or
 electromagnetic-transient simulation. Each measurement is held constant for
 its interval. When ramp limits are enabled, they constrain the active setpoint
-before P-Q allocation; a higher-priority reactive request may then curtail
-delivered active power beyond that setpoint. Sampled envelopes remain static
-external inputs and do not derive SOC, voltage, temperature, or grid-condition
-derating internally. Voltage feedback from reactive injection, frequency
-dynamics, controller latency, converter thermal limits, degradation,
-operating-state-dependent auxiliary demand, and uncertainty remain excluded.
+before temperature, energy, and P-Q limits; a higher-priority reactive request
+may then curtail delivered active power beyond that setpoint. Sampled P-Q and
+temperature envelopes remain static external inputs. They do not derive SOC,
+voltage, temperature, or grid-condition derating internally. Voltage feedback
+from reactive injection, frequency dynamics, controller latency, temperature
+estimation, degradation, operating-state-dependent auxiliary demand, and
+uncertainty remain excluded.
