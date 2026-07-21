@@ -1,12 +1,34 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import math
+import tempfile
 import unittest
+from pathlib import Path
 
-from models.pq_capability import PowerPriority, allocate_power
+from models.pq_capability import (
+    CapabilityCurvePoint,
+    PiecewiseCapabilityCurve,
+    PowerPriority,
+    allocate_power,
+    allocate_power_on_curve,
+    load_capability_curve_csv,
+    main,
+)
 
 
 class PqCapabilityTests(unittest.TestCase):
+    def setUp(self):
+        self.curve = PiecewiseCapabilityCurve(
+            (
+                CapabilityCurvePoint(0.0, 100.0),
+                CapabilityCurvePoint(50.0, 80.0),
+                CapabilityCurvePoint(80.0, 50.0),
+                CapabilityCurvePoint(100.0, 0.0),
+            )
+        )
+
     def test_feasible_request_passes_through(self):
         result = allocate_power(60.0, 40.0, 100.0)
         self.assertEqual(result.active_mw, 60.0)
@@ -53,6 +75,207 @@ class PqCapabilityTests(unittest.TestCase):
             allocate_power(math.nan, 10.0, 100.0)
         with self.assertRaisesRegex(ValueError, "priority must be one of"):
             allocate_power(10.0, 10.0, 100.0, "unknown")
+
+    def test_piecewise_rejects_invalid_inputs(self):
+        with self.assertRaisesRegex(ValueError, "must be finite"):
+            allocate_power_on_curve(math.nan, 10.0, self.curve)
+        with self.assertRaisesRegex(ValueError, "priority must be one of"):
+            allocate_power_on_curve(10.0, 10.0, self.curve, "unknown")
+        with self.assertRaisesRegex(ValueError, "must be finite"):
+            self.curve.reactive_limit_mvar(math.inf)
+
+    def test_piecewise_curve_interpolates_both_axes(self):
+        self.assertAlmostEqual(self.curve.reactive_limit_mvar(65.0), 65.0)
+        self.assertAlmostEqual(self.curve.reactive_limit_mvar(-65.0), 65.0)
+        self.assertAlmostEqual(self.curve.active_limit_mw(65.0), 65.0)
+        self.assertAlmostEqual(self.curve.active_limit_mw(-65.0), 65.0)
+        self.assertAlmostEqual(self.curve.reactive_limit_mvar(120.0), 0.0)
+        self.assertAlmostEqual(self.curve.active_limit_mw(120.0), 0.0)
+
+    def test_piecewise_curve_rejects_invalid_shapes(self):
+        invalid_curves = (
+            (
+                (CapabilityCurvePoint(0.0, 100.0),),
+                "at least two points",
+            ),
+            (
+                (
+                    CapabilityCurvePoint(1.0, 100.0),
+                    CapabilityCurvePoint(100.0, 0.0),
+                ),
+                "reactive axis",
+            ),
+            (
+                (
+                    CapabilityCurvePoint(0.0, 100.0),
+                    CapabilityCurvePoint(100.0, 1.0),
+                ),
+                "active axis",
+            ),
+            (
+                (
+                    CapabilityCurvePoint(0.0, 100.0),
+                    CapabilityCurvePoint(50.0, 60.0),
+                    CapabilityCurvePoint(40.0, 0.0),
+                ),
+                "strictly increasing",
+            ),
+            (
+                (
+                    CapabilityCurvePoint(0.0, 100.0),
+                    CapabilityCurvePoint(50.0, 20.0),
+                    CapabilityCurvePoint(100.0, 0.0),
+                ),
+                "concave",
+            ),
+            (
+                (
+                    CapabilityCurvePoint(0.0, math.inf),
+                    CapabilityCurvePoint(100.0, 0.0),
+                ),
+                "must be finite",
+            ),
+        )
+        for points, message in invalid_curves:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    PiecewiseCapabilityCurve(points)
+
+    def test_piecewise_feasible_request_passes_through(self):
+        result = allocate_power_on_curve(40.0, 60.0, self.curve)
+        self.assertEqual(result.active_mw, 40.0)
+        self.assertEqual(result.reactive_mvar, 60.0)
+        self.assertFalse(result.limited)
+        self.assertLess(result.utilization, 1.0)
+
+    def test_piecewise_active_priority_preserves_active_command(self):
+        result = allocate_power_on_curve(
+            80.0,
+            80.0,
+            self.curve,
+            PowerPriority.ACTIVE,
+        )
+        self.assertAlmostEqual(result.active_mw, 80.0)
+        self.assertAlmostEqual(result.reactive_mvar, 50.0)
+        self.assertAlmostEqual(result.utilization, 1.0)
+
+    def test_piecewise_reactive_priority_preserves_reactive_command(self):
+        result = allocate_power_on_curve(
+            80.0,
+            80.0,
+            self.curve,
+            PowerPriority.REACTIVE,
+        )
+        self.assertAlmostEqual(result.active_mw, 50.0)
+        self.assertAlmostEqual(result.reactive_mvar, 80.0)
+        self.assertAlmostEqual(result.utilization, 1.0)
+
+    def test_piecewise_proportional_priority_preserves_ratio(self):
+        result = allocate_power_on_curve(
+            80.0,
+            80.0,
+            self.curve,
+            PowerPriority.PROPORTIONAL,
+        )
+        self.assertAlmostEqual(result.active_mw, 65.0)
+        self.assertAlmostEqual(result.reactive_mvar, 65.0)
+        self.assertAlmostEqual(result.active_mw / result.reactive_mvar, 1.0)
+        self.assertAlmostEqual(result.utilization, 1.0)
+
+    def test_piecewise_allocation_preserves_negative_quadrant(self):
+        result = allocate_power_on_curve(
+            -80.0,
+            -80.0,
+            self.curve,
+            PowerPriority.ACTIVE,
+        )
+        self.assertAlmostEqual(result.active_mw, -80.0)
+        self.assertAlmostEqual(result.reactive_mvar, -50.0)
+        self.assertLess(result.curtailed_reactive_mvar, 0.0)
+
+    def test_piecewise_single_axis_requests_reach_axis_limits(self):
+        active = allocate_power_on_curve(
+            120.0,
+            10.0,
+            self.curve,
+            PowerPriority.ACTIVE,
+        )
+        reactive = allocate_power_on_curve(
+            10.0,
+            120.0,
+            self.curve,
+            PowerPriority.REACTIVE,
+        )
+        self.assertAlmostEqual(active.active_mw, 100.0)
+        self.assertAlmostEqual(active.reactive_mvar, 0.0)
+        self.assertAlmostEqual(reactive.active_mw, 0.0)
+        self.assertAlmostEqual(reactive.reactive_mvar, 100.0)
+
+    def test_loads_strict_piecewise_curve_csv(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "curve.csv"
+            path.write_text(
+                "active_mw,reactive_limit_mvar\n0,100\n50,80\n80,50\n100,0\n",
+                encoding="utf-8",
+            )
+            loaded = load_capability_curve_csv(path)
+        self.assertEqual(loaded, self.curve)
+
+    def test_curve_csv_rejects_wrong_header_and_incomplete_rows(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "curve.csv"
+            path.write_text("p,q\n0,100\n100,0\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "CSV header"):
+                load_capability_curve_csv(path)
+            path.write_text(
+                "active_mw,reactive_limit_mvar\n0,100\n100,\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "must be complete"):
+                load_capability_curve_csv(path)
+
+    def test_cli_runs_committed_piecewise_curve(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--active-mw",
+                    "80",
+                    "--reactive-mvar",
+                    "80",
+                    "--curve-csv",
+                    "models/data/illustrative_capability_curve.csv",
+                    "--priority",
+                    "active",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Capability model: piecewise curve (4 points)", output)
+        self.assertIn("Active power: 80.000 MW", output)
+        self.assertIn("Reactive power: 50.000 MVAr", output)
+        self.assertIn("Capability utilization: 100.00%", output)
+
+    def test_legacy_circular_cli_output_stays_compatible(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--active-mw",
+                    "80",
+                    "--reactive-mvar",
+                    "80",
+                    "--limit-mva",
+                    "100",
+                    "--priority",
+                    "active",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertTrue(output.startswith("Priority: active\n"))
+        self.assertNotIn("Capability model:", output)
+        self.assertIn("Reactive power: 60.000 MVAr", output)
 
 
 if __name__ == "__main__":
