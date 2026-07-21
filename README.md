@@ -21,6 +21,7 @@ and project teams.
 - [Executable frequency measurement filter](models/README.md#frequency-measurement-filter)
 - [Executable active-power ramp limits](models/README.md#active-power-ramp-limits)
 - [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
+- [Executable multi-interval energy trajectory](models/README.md#multi-interval-energy-trajectory)
 
 - [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
 - [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
@@ -115,6 +116,12 @@ python models/energy_limits.py `
   --active-mw 100 --duration-minutes 60 `
   --energy-capacity-mwh 50 --initial-soc 0.50 `
   --minimum-soc 0.20 --discharge-efficiency 0.90
+python models/energy_sequence.py `
+  --active-mw-profile 50,50,50,-40 `
+  --duration-minutes-profile 15,15,15,30 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --charge-efficiency 0.80 `
+  --discharge-efficiency 1.00
 python -m unittest discover -s tests -v
 ```
 
