@@ -134,11 +134,46 @@ Delivered reactive power: 71.414 MVAr
 ```
 
 The model is static. It excludes frequency measurement filtering, control-loop
-dynamics, ramp-rate limits, recovery logic, and interactions with plant-level
-dispatch. Optional energy arguments enforce SOC reserve, response duration, and
-charge/discharge efficiency before P-Q allocation. Replace every frequency,
-power, energy, efficiency, baseline, and priority assumption with
+dynamics, recovery logic, and interactions with plant-level dispatch. Optional
+ramp arguments enforce asymmetric signed active-power slew limits before SOC
+and P-Q allocation. Optional energy arguments then enforce SOC reserve,
+response duration, and charge/discharge efficiency. Replace every frequency,
+power, ramp, energy, efficiency, baseline, and priority assumption with
 project-controlled values before engineering use.
+
+## Active-Power Ramp Limits
+
+[`ramp_limits.py`](ramp_limits.py) converts separate ramp-up and ramp-down rates
+in MW/minute into the active-power interval reachable from the previous plant
+command. Increasing signed power is ramp-up, including movement from charging
+toward discharge; decreasing signed power is ramp-down. Crossing zero therefore
+uses one continuous signed slew limit rather than two disconnected magnitudes.
+
+Run a frequency event that requests 70 MW from a previous 20 MW operating point
+with only 30 seconds to respond:
+
+```powershell
+python models/frequency_watt.py `
+  --frequency-hz 49.725 --baseline-active-mw 20 `
+  --reactive-mvar 80 --limit-mva 100 `
+  --previous-active-mw 20 --ramp-interval-seconds 30 `
+  --ramp-up-mw-per-minute 40 --ramp-down-mw-per-minute 60
+```
+
+Expected ramp values:
+
+```text
+Power-bounded active request: 70.000 MW
+Ramp-bounded active request: 40.000 MW
+Ramp limited: true
+Ramp limiting direction: ramp_up
+```
+
+The integrated sequence is frequency-watt request, storage charge/discharge
+power bound, ramp bound, interval energy bound, and circular P-Q allocation.
+The returned `ramp`, `energy`, and `capability` records preserve each stage for
+review. The ramp interval is the time available to move from the previous
+command; it is distinct from the energy response duration.
 
 ## SOC And Response-Duration Limits
 
