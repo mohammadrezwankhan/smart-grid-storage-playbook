@@ -4,6 +4,7 @@ import contextlib
 import io
 import math
 import unittest
+from pathlib import Path
 
 from models.frequency_watt import (
     FrequencyWattCurve,
@@ -12,11 +13,17 @@ from models.frequency_watt import (
 )
 from models.energy_limits import EnergyBoundary, StorageEnergyState
 from models.measurement_filter import FirstOrderFilterConfig
-from models.pq_capability import PowerPriority
+from models.pq_capability import (
+    PowerPriority,
+    load_capability_curve_csv,
+    load_directional_capability_csv,
+)
 from models.ramp_limits import RampDirection, RampRateLimits
 
 
 class FrequencyWattTests(unittest.TestCase):
+    data_directory = Path(__file__).parents[1] / "models" / "data"
+
     def test_deadband_includes_both_boundaries(self):
         curve = FrequencyWattCurve()
         self.assertEqual(curve.active_adjustment_mw(49.95), 0.0)
@@ -276,6 +283,56 @@ class FrequencyWattTests(unittest.TestCase):
                                 100.0 + 1e-12,
                             )
 
+    def test_sampled_curve_limits_composed_frequency_dispatch(self):
+        curve = load_capability_curve_csv(
+            self.data_directory / "illustrative_capability_curve.csv"
+        )
+        result = dispatch_frequency_watt(
+            49.725,
+            20.0,
+            80.0,
+            None,
+            priority=PowerPriority.ACTIVE,
+            capability_envelope=curve,
+        )
+
+        self.assertAlmostEqual(result.bounded_active_mw, 70.0)
+        self.assertAlmostEqual(result.capability.active_mw, 70.0)
+        self.assertAlmostEqual(result.capability.reactive_mvar, 60.0)
+        self.assertTrue(result.capability.limited)
+
+    def test_directional_envelope_uses_requested_charge_absorption_quadrant(self):
+        envelope = load_directional_capability_csv(
+            self.data_directory / "illustrative_directional_capability.csv"
+        )
+        result = dispatch_frequency_watt(
+            50.5,
+            0.0,
+            -70.0,
+            None,
+            priority=PowerPriority.REACTIVE,
+            capability_envelope=envelope,
+        )
+
+        self.assertAlmostEqual(result.bounded_active_mw, -100.0)
+        self.assertAlmostEqual(result.capability.active_mw, -40.0)
+        self.assertAlmostEqual(result.capability.reactive_mvar, -70.0)
+
+    def test_capability_boundary_selection_is_strict(self):
+        curve = load_capability_curve_csv(
+            self.data_directory / "illustrative_capability_curve.csv"
+        )
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            dispatch_frequency_watt(50.0, 0.0, 0.0, None)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                capability_envelope=curve,
+            )
+
     def test_cli_reports_response_and_capability_limit(self):
         standard_output = io.StringIO()
         with contextlib.redirect_stdout(standard_output):
@@ -385,6 +442,30 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Control frequency: 49.952 Hz", output)
         self.assertIn("Frequency-filter decay factor: 0.904837", output)
         self.assertIn("Droop adjustment: 0.000 MW", output)
+
+    def test_cli_runs_directional_frequency_dispatch(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "50.5",
+                    "--reactive-mvar",
+                    "-70",
+                    "--directional-curve-csv",
+                    str(
+                        self.data_directory / "illustrative_directional_capability.csv"
+                    ),
+                    "--priority",
+                    "reactive",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Capability model: directional envelope", output)
+        self.assertIn("Capability quadrant: charge_absorption", output)
+        self.assertIn("Delivered active power: -40.000 MW", output)
+        self.assertIn("Delivered reactive power: -70.000 MVAr", output)
 
     def test_cli_rejects_partial_energy_configuration(self):
         with self.assertRaisesRegex(ValueError, "must be provided together"):

@@ -4,17 +4,24 @@ import contextlib
 import io
 import math
 import unittest
+from pathlib import Path
 
 from models.energy_limits import StorageEnergyState
 from models.frequency_watt import dispatch_frequency_watt
 from models.grid_support_sequence import main, simulate_grid_support_sequence
 from models.measurement_filter import FirstOrderFilterConfig
-from models.pq_capability import PowerPriority
+from models.pq_capability import (
+    PowerPriority,
+    load_capability_curve_csv,
+    load_directional_capability_csv,
+)
 from models.ramp_limits import RampRateLimits
 from models.volt_var import VoltVarCurve
 
 
 class GridSupportSequenceTests(unittest.TestCase):
+    data_directory = Path(__file__).parents[1] / "models" / "data"
+
     def test_simultaneous_services_carry_delivered_soc(self):
         result = simulate_grid_support_sequence(
             frequency_hz=(50.0, 49.5, 50.5),
@@ -81,6 +88,72 @@ class GridSupportSequenceTests(unittest.TestCase):
 
         self.assertEqual(result.intervals[0].dispatch, expected)
         self.assertAlmostEqual(result.intervals[0].requested_reactive_mvar, 50.0)
+
+    def test_directional_sequence_selects_all_four_quadrants(self):
+        envelope = load_directional_capability_csv(
+            self.data_directory / "illustrative_directional_capability.csv"
+        )
+        result = simulate_grid_support_sequence(
+            (49.5, 49.5, 50.5, 50.5),
+            (0.95, 1.05, 0.95, 1.05),
+            (0.0, 0.0, 0.0, 0.0),
+            (1.0, 1.0, 1.0, 1.0),
+            StorageEnergyState(
+                1000.0,
+                0.50,
+                charge_efficiency=1.0,
+                discharge_efficiency=1.0,
+            ),
+            None,
+            priority=PowerPriority.REACTIVE,
+            capability_envelope=envelope,
+        )
+
+        delivered = [
+            (
+                interval.dispatch.capability.active_mw,
+                interval.dispatch.capability.reactive_mvar,
+            )
+            for interval in result.intervals
+        ]
+        expected = (
+            (81.81818181818181, 50.0),
+            (80.0, -45.0),
+            (-65.0, 50.0),
+            (-60.833333333333336, -45.0),
+        )
+        for actual, target in zip(delivered, expected, strict=True):
+            self.assertAlmostEqual(actual[0], target[0])
+            self.assertAlmostEqual(actual[1], target[1])
+        for interval, expected_reactive_mvar in zip(
+            result.intervals,
+            (50.0, -45.0, 50.0, -45.0),
+            strict=True,
+        ):
+            self.assertAlmostEqual(
+                interval.requested_reactive_mvar,
+                expected_reactive_mvar,
+            )
+        self.assertAlmostEqual(result.soc_balance_error, 0.0)
+
+    def test_symmetric_sequence_uses_curve_reactive_axis(self):
+        curve = load_capability_curve_csv(
+            self.data_directory / "illustrative_capability_curve.csv"
+        )
+        result = simulate_grid_support_sequence(
+            (50.0,),
+            (0.95,),
+            (20.0,),
+            (15.0,),
+            StorageEnergyState(100.0, 0.50),
+            None,
+            priority=PowerPriority.ACTIVE,
+            capability_envelope=curve,
+        )
+        interval = result.intervals[0]
+        self.assertAlmostEqual(interval.requested_reactive_mvar, 50.0)
+        self.assertAlmostEqual(interval.dispatch.capability.active_mw, 20.0)
+        self.assertAlmostEqual(interval.dispatch.capability.reactive_mvar, 50.0)
 
     def test_soc_boundaries_carry_between_opposite_responses(self):
         result = simulate_grid_support_sequence(
@@ -206,6 +279,21 @@ class GridSupportSequenceTests(unittest.TestCase):
                 100.0,
                 initial_filtered_frequency_hz=50.0,
             )
+        curve = load_capability_curve_csv(
+            self.data_directory / "illustrative_capability_curve.csv"
+        )
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            simulate_grid_support_sequence((50.0,), (1.0,), (0.0,), (1.0,), state, None)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            simulate_grid_support_sequence(
+                (50.0,),
+                (1.0,),
+                (0.0,),
+                (1.0,),
+                state,
+                100.0,
+                capability_envelope=curve,
+            )
 
     def test_operating_sweep_respects_soc_and_capability_boundaries(self):
         frequencies = (49.0, 49.8, 50.0, 50.2, 51.0)
@@ -305,6 +393,40 @@ class GridSupportSequenceTests(unittest.TestCase):
             main(common + ["--initial-active-mw", "0"])
         with self.assertRaisesRegex(ValueError, "must be provided together"):
             main(common + ["--initial-filtered-frequency-hz", "50"])
+
+    def test_cli_runs_directional_grid_support_sequence(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz-profile",
+                    "49.5,49.5,50.5,50.5",
+                    "--voltage-pu-profile",
+                    "0.95,1.05,0.95,1.05",
+                    "--duration-minutes-profile",
+                    "1,1,1,1",
+                    "--directional-curve-csv",
+                    str(
+                        self.data_directory / "illustrative_directional_capability.csv"
+                    ),
+                    "--energy-capacity-mwh",
+                    "1000",
+                    "--initial-soc",
+                    "0.5",
+                    "--charge-efficiency",
+                    "1",
+                    "--discharge-efficiency",
+                    "1",
+                    "--priority",
+                    "reactive",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Capability model: directional envelope", output)
+        self.assertIn("requested_q=50.000 MVAr", output)
+        self.assertIn("requested_q=-45.000 MVAr", output)
+        self.assertIn("delivered_p=-60.833 MW", output)
 
 
 if __name__ == "__main__":
