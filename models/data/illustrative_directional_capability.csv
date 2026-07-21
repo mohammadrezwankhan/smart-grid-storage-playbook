@@ -1,0 +1,17 @@
+quadrant,active_mw,reactive_limit_mvar
+discharge_injection,0,100
+discharge_injection,50,85
+discharge_injection,80,55
+discharge_injection,100,0
+discharge_absorption,0,90
+discharge_absorption,50,75
+discharge_absorption,80,45
+discharge_absorption,100,0
+charge_injection,0,100
+charge_injection,40,82
+charge_injection,65,50
+charge_injection,80,0
+charge_absorption,0,90
+charge_absorption,40,70
+charge_absorption,65,40
+charge_absorption,80,0
