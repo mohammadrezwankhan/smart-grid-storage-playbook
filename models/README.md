@@ -251,4 +251,47 @@ active power that remains after P-Q allocation.
 
 This is a single-interval energy accounting reference. It does not model
 self-discharge, auxiliary load, nonlinear efficiency, degradation, thermal
-derating, uncertain capacity, multi-interval scheduling, or SOC recovery.
+derating, or uncertain capacity.
+
+## Multi-Interval Energy Trajectory
+
+[`energy_sequence.py`](energy_sequence.py) carries ending SOC into the next
+requested interval while delegating every power decision to the same
+single-interval limiter. It supports variable durations and preserves the full
+interval result so reviewers can see exactly where a request reached an SOC
+boundary.
+
+Run a four-interval profile that discharges to the minimum SOC boundary and
+then recovers through charging:
+
+```powershell
+python models/energy_sequence.py `
+  --active-mw-profile 50,50,50,-40 `
+  --duration-minutes-profile 15,15,15,30 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --charge-efficiency 0.80 `
+  --discharge-efficiency 1.00
+```
+
+Expected summary:
+
+```text
+Intervals: 4
+Limited intervals: 1
+Ending SOC: 0.3600
+Requested AC energy: 17.500 MWh
+Delivered AC energy: 10.000 MWh
+Curtailed AC energy: 7.500 MWh
+Stored energy change: -14.000 MWh
+```
+
+Positive AC energy is net discharge to the grid; negative AC energy is net
+charging. Curtailed energy is the absolute requested-versus-delivered gap, so
+it remains nonnegative in either direction. `soc_balance_error` independently
+reconstructs final SOC from cumulative stored-energy change.
+
+This is a forward audit of a supplied power trajectory, not a scheduler or
+optimizer. It does not choose prices, services, or interval requests, and it
+does not compose frequency, ramp, or P-Q constraints across time. The standing
+loss, auxiliary-load, nonlinear-efficiency, degradation, thermal, and capacity
+limitations of the single-interval model still apply.
