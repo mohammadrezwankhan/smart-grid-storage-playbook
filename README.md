@@ -18,6 +18,7 @@ and project teams.
 - [Executable active/reactive capability reference](models/README.md)
 - [Executable Volt-VAR dispatch reference](models/README.md#volt-var-dispatch-reference)
 - [Executable frequency-watt dispatch reference](models/README.md#frequency-watt-dispatch-reference)
+- [Executable frequency measurement filter](models/README.md#frequency-measurement-filter)
 - [Executable active-power ramp limits](models/README.md#active-power-ramp-limits)
 - [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
 
@@ -104,6 +105,9 @@ python models/volt_var.py `
 python models/frequency_watt.py `
   --frequency-hz 49.725 --baseline-active-mw 20 `
   --reactive-mvar 80 --limit-mva 100
+python models/measurement_filter.py `
+  --input-value 49.5 --previous-output-value 50 `
+  --interval-seconds 0.1 --time-constant-seconds 1
 python models/ramp_limits.py `
   --active-mw 80 --previous-active-mw 20 --interval-seconds 30 `
   --ramp-up-mw-per-minute 40 --ramp-down-mw-per-minute 60
