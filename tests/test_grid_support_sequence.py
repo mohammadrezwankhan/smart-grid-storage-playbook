@@ -16,6 +16,7 @@ from models.pq_capability import (
     load_directional_capability_csv,
 )
 from models.ramp_limits import RampRateLimits
+from models.temperature_derating import load_temperature_derating_csv
 from models.volt_var import VoltVarCurve
 
 
@@ -267,6 +268,39 @@ class GridSupportSequenceTests(unittest.TestCase):
         )
         self.assertAlmostEqual(result.soc_balance_error, 0.0)
 
+    def test_temperature_profile_applies_and_counts_hard_power_limits(self):
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+
+        result = simulate_grid_support_sequence(
+            (49.5, 49.5, 49.5),
+            (1.0, 1.0, 1.0),
+            (0.0, 0.0, 0.0),
+            (1.0, 1.0, 1.0),
+            StorageEnergyState(
+                1000.0,
+                0.50,
+                charge_efficiency=1.0,
+                discharge_efficiency=1.0,
+            ),
+            150.0,
+            temperature_c=(-20.0, 20.0, 55.0),
+            temperature_derating_curve=temperature_curve,
+        )
+
+        delivered = tuple(
+            interval.dispatch.capability.active_mw for interval in result.intervals
+        )
+        self.assertEqual(delivered, (30.0, 100.0, 20.0))
+        self.assertEqual(
+            tuple(interval.temperature_c for interval in result.intervals),
+            (-20.0, 20.0, 55.0),
+        )
+        self.assertEqual(result.temperature_limited_interval_count, 2)
+        self.assertEqual(result.limited_interval_count, 2)
+        self.assertAlmostEqual(result.ending_soc, 0.4975)
+
     def test_profile_and_optional_state_inputs_are_validated(self):
         state = StorageEnergyState(100.0, 0.50)
         with self.assertRaisesRegex(ValueError, "at least one interval"):
@@ -303,6 +337,30 @@ class GridSupportSequenceTests(unittest.TestCase):
                 state,
                 100.0,
                 initial_filtered_frequency_hz=50.0,
+            )
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            simulate_grid_support_sequence(
+                (50.0,),
+                (1.0,),
+                (0.0,),
+                (1.0,),
+                state,
+                100.0,
+                temperature_c=(25.0,),
+            )
+        with self.assertRaisesRegex(ValueError, "must match"):
+            simulate_grid_support_sequence(
+                (50.0,),
+                (1.0,),
+                (0.0,),
+                (1.0,),
+                state,
+                100.0,
+                temperature_c=(25.0, 30.0),
+                temperature_derating_curve=temperature_curve,
             )
         curve = load_capability_curve_csv(
             self.data_directory / "illustrative_capability_curve.csv"
@@ -398,6 +456,58 @@ class GridSupportSequenceTests(unittest.TestCase):
             output,
         )
         self.assertIn("limits=storage_power,capability", output)
+
+    def test_cli_reports_temperature_profile_limits(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz-profile",
+                    "49.5,49.5",
+                    "--voltage-pu-profile",
+                    "1,1",
+                    "--duration-minutes-profile",
+                    "1,1",
+                    "--limit-mva",
+                    "150",
+                    "--energy-capacity-mwh",
+                    "1000",
+                    "--initial-soc",
+                    "0.5",
+                    "--temperature-c-profile",
+                    "20,55",
+                    "--temperature-derating-csv",
+                    str(self.data_directory / "illustrative_temperature_derating.csv"),
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Temperature derating model: piecewise curve (6 points)", output)
+        self.assertIn("Temperature-limited intervals: 1", output)
+        self.assertIn("temperature=55.000 C", output)
+        self.assertIn("limits=temperature", output)
+
+    def test_cli_rejects_partial_temperature_profile_configuration(self):
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            main(
+                [
+                    "--frequency-hz-profile",
+                    "50",
+                    "--voltage-pu-profile",
+                    "1",
+                    "--duration-minutes-profile",
+                    "1",
+                    "--limit-mva",
+                    "100",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.5",
+                    "--temperature-c-profile",
+                    "25",
+                ]
+            )
 
     def test_cli_reports_grid_support_storage_losses(self):
         standard_output = io.StringIO()

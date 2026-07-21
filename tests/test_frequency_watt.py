@@ -19,6 +19,7 @@ from models.pq_capability import (
     load_directional_capability_csv,
 )
 from models.ramp_limits import RampDirection, RampRateLimits
+from models.temperature_derating import load_temperature_derating_csv
 
 
 class FrequencyWattTests(unittest.TestCase):
@@ -114,6 +115,95 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertAlmostEqual(result.bounded_active_mw, 100.0)
         self.assertTrue(result.storage_power_limited)
         self.assertFalse(result.capability.limited)
+
+    def test_temperature_curve_hard_limits_discharge_after_power_bound(self):
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+
+        result = dispatch_frequency_watt(
+            49.5,
+            0.0,
+            0.0,
+            120.0,
+            temperature_c=45.0,
+            temperature_derating_curve=temperature_curve,
+        )
+
+        self.assertEqual(result.power_bounded_active_mw, 100.0)
+        self.assertEqual(result.ramp_bounded_active_mw, 100.0)
+        self.assertEqual(result.temperature_bounded_active_mw, 70.0)
+        self.assertEqual(result.bounded_active_mw, 70.0)
+        self.assertFalse(result.storage_power_limited)
+        self.assertIsNotNone(result.temperature_derating)
+        assert result.temperature_derating is not None
+        self.assertTrue(result.temperature_derating.temperature_limited)
+        self.assertEqual(result.capability.active_mw, 70.0)
+
+    def test_temperature_limit_takes_precedence_over_slow_ramp_down(self):
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+
+        result = dispatch_frequency_watt(
+            50.0,
+            0.0,
+            0.0,
+            150.0,
+            ramp_limits=RampRateLimits(10.0, 10.0),
+            previous_active_mw=100.0,
+            ramp_interval_seconds=60.0,
+            temperature_c=55.0,
+            temperature_derating_curve=temperature_curve,
+        )
+
+        self.assertEqual(result.power_bounded_active_mw, 0.0)
+        self.assertEqual(result.ramp_bounded_active_mw, 90.0)
+        self.assertEqual(result.temperature_bounded_active_mw, 20.0)
+        assert result.ramp is not None
+        assert result.temperature_derating is not None
+        self.assertTrue(result.ramp.ramp_limited)
+        self.assertTrue(result.temperature_derating.temperature_limited)
+
+    def test_temperature_curve_applies_independent_charge_limit(self):
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+
+        result = dispatch_frequency_watt(
+            50.5,
+            0.0,
+            0.0,
+            120.0,
+            temperature_c=45.0,
+            temperature_derating_curve=temperature_curve,
+        )
+
+        self.assertEqual(result.temperature_bounded_active_mw, -50.0)
+        assert result.temperature_derating is not None
+        self.assertEqual(result.temperature_derating.effective_max_charge_mw, 50.0)
+        self.assertTrue(result.temperature_derating.temperature_limited)
+
+    def test_temperature_configuration_is_paired(self):
+        temperature_curve = load_temperature_derating_csv(
+            self.data_directory / "illustrative_temperature_derating.csv"
+        )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                temperature_c=25.0,
+            )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                temperature_derating_curve=temperature_curve,
+            )
 
     def test_active_priority_preserves_frequency_support(self):
         result = dispatch_frequency_watt(49.725, 20.0, 80.0, 100.0)
@@ -376,6 +466,41 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Droop adjustment: 50.000 MW", output)
         self.assertIn("Capability limited: true", output)
         self.assertIn("Delivered active power: 70.000 MW", output)
+
+    def test_cli_reports_temperature_derating_stage(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "49.5",
+                    "--limit-mva",
+                    "120",
+                    "--temperature-c",
+                    "45",
+                    "--temperature-derating-csv",
+                    str(self.data_directory / "illustrative_temperature_derating.csv"),
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Sampled temperature discharge limit: 70.000 MW", output)
+        self.assertIn("Temperature-bounded active request: 70.000 MW", output)
+        self.assertIn("Temperature power limited: true", output)
+
+    def test_cli_rejects_partial_temperature_configuration(self):
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            main(
+                [
+                    "--frequency-hz",
+                    "49.5",
+                    "--limit-mva",
+                    "100",
+                    "--temperature-c",
+                    "45",
+                ]
+            )
 
     def test_cli_reports_soc_limited_frequency_response(self):
         standard_output = io.StringIO()
