@@ -562,6 +562,43 @@ model activation delay, ramping, P-Q competition, thermal derating, reserve
 recovery, simultaneous services, or probabilistic availability. Compose those
 constraints separately before making a market or grid-code claim.
 
+## Reserve Sequence Audit
+
+[`reserve_sequence.py`](reserve_sequence.py) applies the sustained reserve
+calculation before every interval in a baseline schedule, then advances SOC
+through the interval with the same exact standing-loss and conversion model.
+This makes reserve erosion or recovery from earlier dispatch visible instead
+of treating every commitment as if it started from the original SOC.
+
+Run three 30-minute discharge intervals with a 30-minute reserve requirement:
+
+```powershell
+python models/reserve_sequence.py `
+  --baseline-active-mw-profile 20,20,20 `
+  --interval-duration-minutes-profile 30,30,30 `
+  --response-duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 100 --initial-soc 0.80 `
+  --minimum-soc 0.20 --maximum-soc 0.90 `
+  --charge-efficiency 1 --discharge-efficiency 1
+```
+
+Expected schedule minima:
+
+```text
+Ending SOC: 0.5000
+Minimum upward reserve: 60.000 MW (interval 3)
+Minimum downward reserve: 40.000 MW (interval 1)
+Reserve energy-limited intervals: upward=1, downward=3
+```
+
+The baseline schedule is a firm input: an interval is rejected if its baseline
+cannot be delivered for the full schedule duration. Reserve limits are assessed
+from interval-start SOC and represent replacement setpoints held for the stated
+response duration; they do not simulate activation energy in addition to the
+baseline trajectory. Ramping, P-Q competition, temperature derating, recovery
+requirements, and overlapping reserve activations remain separate constraints.
+
 ## Multi-Service Grid-Support Sequence
 
 [`grid_support_sequence.py`](grid_support_sequence.py) composes the existing
