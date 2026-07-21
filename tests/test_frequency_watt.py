@@ -12,6 +12,7 @@ from models.frequency_watt import (
 )
 from models.energy_limits import EnergyBoundary, StorageEnergyState
 from models.pq_capability import PowerPriority
+from models.ramp_limits import RampDirection, RampRateLimits
 
 
 class FrequencyWattTests(unittest.TestCase):
@@ -102,6 +103,57 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertAlmostEqual(result.capability.active_mw, 18.0)
         self.assertAlmostEqual(result.capability.reactive_mvar, 80.0)
         self.assertFalse(result.capability.limited)
+
+    def test_ramp_limit_applies_before_energy_and_capability(self):
+        energy_state = StorageEnergyState(
+            energy_capacity_mwh=100.0,
+            initial_soc=0.50,
+            minimum_soc=0.10,
+            discharge_efficiency=1.0,
+        )
+        result = dispatch_frequency_watt(
+            49.725,
+            20.0,
+            95.0,
+            100.0,
+            priority=PowerPriority.REACTIVE,
+            energy_state=energy_state,
+            duration_minutes=15.0,
+            ramp_limits=RampRateLimits(40.0, 60.0),
+            previous_active_mw=20.0,
+            ramp_interval_seconds=30.0,
+        )
+        self.assertAlmostEqual(result.power_bounded_active_mw, 70.0)
+        self.assertAlmostEqual(result.ramp_bounded_active_mw, 40.0)
+        self.assertIsNotNone(result.ramp)
+        assert result.ramp is not None
+        self.assertTrue(result.ramp.ramp_limited)
+        self.assertIs(result.ramp.limiting_direction, RampDirection.UP)
+        self.assertIsNotNone(result.energy)
+        assert result.energy is not None
+        self.assertAlmostEqual(result.energy.requested_active_mw, 40.0)
+        self.assertAlmostEqual(result.capability.active_mw, 31.22498999199199)
+        self.assertAlmostEqual(result.capability.reactive_mvar, 95.0)
+
+    def test_ramp_configuration_and_previous_power_are_validated(self):
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                ramp_limits=RampRateLimits(10.0, 10.0),
+            )
+        with self.assertRaisesRegex(ValueError, "storage power limits"):
+            dispatch_frequency_watt(
+                50.0,
+                0.0,
+                0.0,
+                100.0,
+                ramp_limits=RampRateLimits(10.0, 10.0),
+                previous_active_mw=101.0,
+                ramp_interval_seconds=30.0,
+            )
 
     def test_delivered_soc_accounts_for_pq_active_power_curtailment(self):
         energy_state = StorageEnergyState(
@@ -222,6 +274,35 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Energy limited: true", output)
         self.assertIn("Energy limiting boundary: minimum_soc", output)
         self.assertIn("Ending SOC: 0.2000", output)
+
+    def test_cli_reports_ramp_limited_frequency_response(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "49.725",
+                    "--baseline-active-mw",
+                    "20",
+                    "--reactive-mvar",
+                    "80",
+                    "--limit-mva",
+                    "100",
+                    "--previous-active-mw",
+                    "20",
+                    "--ramp-interval-seconds",
+                    "30",
+                    "--ramp-up-mw-per-minute",
+                    "40",
+                    "--ramp-down-mw-per-minute",
+                    "60",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Ramp-bounded active request: 40.000 MW", output)
+        self.assertIn("Ramp limited: true", output)
+        self.assertIn("Ramp limiting direction: ramp_up", output)
 
     def test_cli_rejects_partial_energy_configuration(self):
         with self.assertRaisesRegex(ValueError, "must be provided together"):
