@@ -202,8 +202,14 @@ class ReserveSequenceTests(unittest.TestCase):
             audit_reserve_sequence([], [], 15.0, 100.0, 100.0, state)
         with self.assertRaisesRegex(ValueError, "equal lengths"):
             audit_reserve_sequence([0.0], [15.0, 15.0], 15.0, 100.0, 100.0, state)
-        with self.assertRaisesRegex(ValueError, "duration_minutes"):
+        with self.assertRaisesRegex(ValueError, "response_duration_minutes"):
             audit_reserve_sequence([0.0], [15.0], 0.0, 100.0, 100.0, state)
+        with self.assertRaisesRegex(ValueError, "interval_duration_minutes"):
+            audit_reserve_sequence([0.0], [0.0], 15.0, 100.0, 100.0, state)
+        with self.assertRaisesRegex(ValueError, "must be nonnegative"):
+            audit_reserve_sequence([0.0], [15.0], 15.0, -10.0, 100.0, state)
+        with self.assertRaisesRegex(ValueError, "must be nonnegative"):
+            audit_reserve_sequence([0.0], [15.0], 15.0, 10.0, -100.0, state)
 
     def test_cli_reports_schedule_minima_and_interval_evidence(self):
         standard_output = io.StringIO()
