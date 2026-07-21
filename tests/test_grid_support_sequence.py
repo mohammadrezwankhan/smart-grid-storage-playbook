@@ -242,6 +242,31 @@ class GridSupportSequenceTests(unittest.TestCase):
         self.assertGreaterEqual(result.active_shortfall_energy_mwh, 0.0)
         self.assertGreaterEqual(result.reactive_shortfall_service_mvarh, 0.0)
 
+    def test_storage_losses_carry_through_grid_support_sequence(self):
+        result = simulate_grid_support_sequence(
+            (50.0, 50.0),
+            (1.0, 1.0),
+            (0.0, 0.0),
+            (60.0, 60.0),
+            StorageEnergyState(
+                100.0,
+                0.80,
+                auxiliary_load_mw=2.0,
+                self_discharge_rate_per_hour=0.01,
+            ),
+            100.0,
+        )
+
+        self.assertAlmostEqual(result.ending_soc, 0.7445562852589148)
+        self.assertEqual(result.dispatch_stored_energy_change_mwh, 0.0)
+        self.assertAlmostEqual(result.auxiliary_energy_mwh, 4.0)
+        self.assertAlmostEqual(result.self_discharge_energy_mwh, 1.544371474108516)
+        self.assertAlmostEqual(
+            result.stored_energy_change_mwh,
+            -result.auxiliary_energy_mwh - result.self_discharge_energy_mwh,
+        )
+        self.assertAlmostEqual(result.soc_balance_error, 0.0)
+
     def test_profile_and_optional_state_inputs_are_validated(self):
         state = StorageEnergyState(100.0, 0.50)
         with self.assertRaisesRegex(ValueError, "at least one interval"):
@@ -373,6 +398,36 @@ class GridSupportSequenceTests(unittest.TestCase):
             output,
         )
         self.assertIn("limits=storage_power,capability", output)
+
+    def test_cli_reports_grid_support_storage_losses(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz-profile",
+                    "50,50",
+                    "--voltage-pu-profile",
+                    "1,1",
+                    "--duration-minutes-profile",
+                    "60,60",
+                    "--limit-mva",
+                    "100",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.8",
+                    "--auxiliary-load-mw",
+                    "2",
+                    "--self-discharge-rate-per-hour",
+                    "0.01",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Ending SOC: 0.7446", output)
+        self.assertIn("Auxiliary energy: 4.000 MWh", output)
+        self.assertIn("Self-discharge energy: 1.544 MWh", output)
 
     def test_cli_rejects_partial_ramp_and_filter_configuration(self):
         common = [

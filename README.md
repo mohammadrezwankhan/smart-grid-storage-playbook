@@ -125,6 +125,10 @@ python models/energy_limits.py `
   --active-mw 100 --duration-minutes 60 `
   --energy-capacity-mwh 50 --initial-soc 0.50 `
   --minimum-soc 0.20 --discharge-efficiency 0.90
+python models/energy_limits.py `
+  --active-mw 0 --duration-minutes 120 `
+  --energy-capacity-mwh 100 --initial-soc 0.80 `
+  --auxiliary-load-mw 2 --self-discharge-rate-per-hour 0.01
 python models/energy_sequence.py `
   --active-mw-profile 50,50,50,-40 `
   --duration-minutes-profile 15,15,15,30 `

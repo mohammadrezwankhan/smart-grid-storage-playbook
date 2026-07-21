@@ -65,6 +65,95 @@ class EnergyLimitsTests(unittest.TestCase):
         self.assertEqual(result.ending_soc, 0.50)
         self.assertFalse(result.energy_limited)
 
+    def test_idle_losses_follow_exact_exponential_solution(self):
+        state = StorageEnergyState(
+            100.0,
+            0.80,
+            auxiliary_load_mw=2.0,
+            self_discharge_rate_per_hour=0.01,
+        )
+        result = limit_active_power_by_energy(0.0, 120.0, state)
+
+        retention = math.exp(-0.01 * 2.0)
+        equivalent_hours = -math.expm1(-0.01 * 2.0) / 0.01
+        expected_ending_energy_mwh = 80.0 * retention - 2.0 * equivalent_hours
+        self.assertAlmostEqual(result.ending_soc, expected_ending_energy_mwh / 100.0)
+        self.assertAlmostEqual(result.auxiliary_energy_mwh, 4.0)
+        self.assertAlmostEqual(
+            result.self_discharge_energy_mwh,
+            80.0 - expected_ending_energy_mwh - 4.0,
+        )
+        self.assertFalse(result.energy_limited)
+
+    def test_losses_reduce_discharge_and_increase_charge_headroom(self):
+        discharge = limit_active_power_by_energy(
+            100.0,
+            60.0,
+            StorageEnergyState(
+                50.0,
+                0.50,
+                minimum_soc=0.20,
+                discharge_efficiency=0.90,
+                auxiliary_load_mw=1.0,
+                self_discharge_rate_per_hour=0.02,
+            ),
+        )
+        charge = limit_active_power_by_energy(
+            -100.0,
+            60.0,
+            StorageEnergyState(
+                50.0,
+                0.80,
+                maximum_soc=0.90,
+                charge_efficiency=0.80,
+                auxiliary_load_mw=1.0,
+                self_discharge_rate_per_hour=0.02,
+            ),
+        )
+
+        self.assertAlmostEqual(discharge.delivered_active_mw, 12.285449997000027)
+        self.assertAlmostEqual(discharge.ending_soc, 0.20)
+        self.assertIs(discharge.limiting_boundary, EnergyBoundary.MINIMUM_SOC)
+        self.assertAlmostEqual(charge.delivered_active_mw, -8.562708331944462)
+        self.assertAlmostEqual(charge.ending_soc, 0.90)
+        self.assertIs(charge.limiting_boundary, EnergyBoundary.MAXIMUM_SOC)
+
+    def test_loss_components_close_the_stored_energy_balance(self):
+        result = limit_active_power_by_energy(
+            -10.0,
+            30.0,
+            StorageEnergyState(
+                100.0,
+                0.50,
+                charge_efficiency=0.90,
+                auxiliary_load_mw=0.50,
+                self_discharge_rate_per_hour=0.005,
+            ),
+        )
+
+        reconstructed_change = (
+            result.dispatch_stored_energy_change_mwh
+            - result.auxiliary_energy_mwh
+            - result.self_discharge_energy_mwh
+        )
+        self.assertAlmostEqual(result.stored_energy_change_mwh, reconstructed_change)
+        self.assertGreater(result.self_discharge_energy_mwh, 0.0)
+
+    def test_losses_that_cannot_preserve_minimum_soc_are_rejected(self):
+        state = StorageEnergyState(
+            100.0,
+            0.20,
+            minimum_soc=0.20,
+            auxiliary_load_mw=1.0,
+            self_discharge_rate_per_hour=0.01,
+        )
+        with self.assertRaisesRegex(ValueError, "before applying requested discharge"):
+            limit_active_power_by_energy(10.0, 60.0, state)
+        with self.assertRaisesRegex(ValueError, "without a charging request"):
+            limit_active_power_by_energy(0.0, 60.0, state)
+        with self.assertRaisesRegex(ValueError, "insufficient"):
+            limit_active_power_by_energy(-0.10, 60.0, state)
+
     def test_boundary_states_block_only_the_outward_direction(self):
         lower = StorageEnergyState(100.0, 0.20, minimum_soc=0.20)
         upper = StorageEnergyState(100.0, 0.90, maximum_soc=0.90)
@@ -106,6 +195,22 @@ class EnergyLimitsTests(unittest.TestCase):
             limit_active_power_by_energy(math.nan, 15.0, StorageEnergyState(100.0, 0.5))
         with self.assertRaisesRegex(ValueError, "duration_minutes"):
             limit_active_power_by_energy(10.0, 0.0, StorageEnergyState(100.0, 0.5))
+        with self.assertRaisesRegex(ValueError, "auxiliary_load_mw"):
+            limit_active_power_by_energy(
+                10.0,
+                15.0,
+                StorageEnergyState(100.0, 0.5, auxiliary_load_mw=-0.1),
+            )
+        with self.assertRaisesRegex(ValueError, "self_discharge_rate_per_hour"):
+            limit_active_power_by_energy(
+                10.0,
+                15.0,
+                StorageEnergyState(
+                    100.0,
+                    0.5,
+                    self_discharge_rate_per_hour=-0.1,
+                ),
+            )
 
     def test_operating_sweep_never_crosses_soc_boundaries(self):
         for initial_soc in (0.20, 0.35, 0.75, 0.90):
@@ -154,6 +259,31 @@ class EnergyLimitsTests(unittest.TestCase):
         self.assertIn("Energy limited: true", output)
         self.assertIn("Limiting boundary: minimum_soc", output)
         self.assertIn("Ending SOC: 0.2000", output)
+
+    def test_cli_reports_auxiliary_and_self_discharge_energy(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--active-mw",
+                    "0",
+                    "--duration-minutes",
+                    "120",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.8",
+                    "--auxiliary-load-mw",
+                    "2",
+                    "--self-discharge-rate-per-hour",
+                    "0.01",
+                ]
+            )
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Ending SOC: 0.7446", output)
+        self.assertIn("Auxiliary energy: 4.000 MWh", output)
+        self.assertIn("Self-discharge energy: 1.544 MWh", output)
 
 
 if __name__ == "__main__":

@@ -54,6 +54,52 @@ class EnergySequenceTests(unittest.TestCase):
         self.assertEqual(result.initial_soc, state.initial_soc)
         self.assertEqual(result.ending_soc, expected.ending_soc)
 
+    def test_split_idle_intervals_match_one_exact_loss_interval(self):
+        state = StorageEnergyState(
+            100.0,
+            0.80,
+            auxiliary_load_mw=2.0,
+            self_discharge_rate_per_hour=0.01,
+        )
+        combined = limit_active_power_by_energy(0.0, 120.0, state)
+        split = simulate_energy_dispatch_sequence(
+            (0.0, 0.0, 0.0, 0.0),
+            (30.0, 30.0, 30.0, 30.0),
+            state,
+        )
+
+        self.assertAlmostEqual(split.ending_soc, combined.ending_soc)
+        self.assertAlmostEqual(split.auxiliary_energy_mwh, 4.0)
+        self.assertAlmostEqual(
+            split.self_discharge_energy_mwh,
+            combined.self_discharge_energy_mwh,
+        )
+        self.assertEqual(split.dispatch_stored_energy_change_mwh, 0.0)
+
+    def test_sequence_loss_aggregates_close_energy_identity(self):
+        result = simulate_energy_dispatch_sequence(
+            (10.0, -5.0, 0.0),
+            (15.0, 30.0, 45.0),
+            StorageEnergyState(
+                100.0,
+                0.60,
+                charge_efficiency=0.90,
+                discharge_efficiency=0.90,
+                auxiliary_load_mw=0.20,
+                self_discharge_rate_per_hour=0.002,
+            ),
+        )
+
+        reconstructed_change = (
+            result.dispatch_stored_energy_change_mwh
+            - result.auxiliary_energy_mwh
+            - result.self_discharge_energy_mwh
+        )
+        self.assertAlmostEqual(result.stored_energy_change_mwh, reconstructed_change)
+        self.assertAlmostEqual(result.auxiliary_energy_mwh, 0.30)
+        self.assertGreater(result.self_discharge_energy_mwh, 0.0)
+        self.assertAlmostEqual(result.soc_balance_error, 0.0)
+
     def test_mixed_profile_closes_stored_energy_and_soc_balance(self):
         state = StorageEnergyState(
             energy_capacity_mwh=120.0,
@@ -160,6 +206,32 @@ class EnergySequenceTests(unittest.TestCase):
             output,
         )
         self.assertIn("boundary=minimum_soc", output)
+
+    def test_cli_reports_sequence_loss_totals(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--active-mw-profile",
+                    "0,0",
+                    "--duration-minutes-profile",
+                    "60,60",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.8",
+                    "--auxiliary-load-mw",
+                    "2",
+                    "--self-discharge-rate-per-hour",
+                    "0.01",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Ending SOC: 0.7446", output)
+        self.assertIn("Auxiliary energy: 4.000 MWh", output)
+        self.assertIn("Self-discharge energy: 1.544 MWh", output)
 
 
 if __name__ == "__main__":
