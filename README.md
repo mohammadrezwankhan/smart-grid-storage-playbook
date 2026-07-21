@@ -161,7 +161,10 @@ python -m unittest discover -s tests -v
 ```
 
 Review the [model assumptions and limitations](models/README.md) before mapping
-the result to a plant controller, PCS capability curve, or grid-code study.
+the result to a plant controller, PCS capability curve, grid-code study, or
+battery warranty. The multi-interval energy reference reports separate AC and
+stored-energy throughput, conversion loss, and throughput-equivalent full
+cycles without claiming a degradation model.
 
 ## Contribution Entry Points
 

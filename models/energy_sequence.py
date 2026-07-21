@@ -30,6 +30,15 @@ class EnergyDispatchSequence:
     requested_ac_energy_mwh: float
     delivered_ac_energy_mwh: float
     curtailed_ac_energy_mwh: float
+    delivered_discharge_ac_energy_mwh: float
+    delivered_charge_ac_energy_mwh: float
+    ac_energy_throughput_mwh: float
+    stored_discharge_energy_mwh: float
+    stored_charge_energy_mwh: float
+    stored_energy_throughput_mwh: float
+    conversion_loss_mwh: float
+    throughput_equivalent_full_cycles: float
+    conversion_balance_error_mwh: float
     dispatch_stored_energy_change_mwh: float
     auxiliary_energy_mwh: float
     self_discharge_energy_mwh: float
@@ -88,8 +97,51 @@ def simulate_energy_dispatch_sequence(
         / 60.0
         for interval in intervals
     )
+    delivered_discharge_ac_energy_mwh = math.fsum(
+        max(interval.delivered_active_mw, 0.0)
+        * interval.duration_minutes
+        / 60.0
+        for interval in intervals
+    )
+    delivered_charge_ac_energy_mwh = math.fsum(
+        max(-interval.delivered_active_mw, 0.0)
+        * interval.duration_minutes
+        / 60.0
+        for interval in intervals
+    )
+    ac_energy_throughput_mwh = (
+        delivered_discharge_ac_energy_mwh + delivered_charge_ac_energy_mwh
+    )
     dispatch_stored_energy_change_mwh = math.fsum(
         interval.dispatch_stored_energy_change_mwh for interval in intervals
+    )
+    stored_discharge_energy_mwh = math.fsum(
+        max(-interval.dispatch_stored_energy_change_mwh, 0.0)
+        for interval in intervals
+    )
+    stored_charge_energy_mwh = math.fsum(
+        max(interval.dispatch_stored_energy_change_mwh, 0.0)
+        for interval in intervals
+    )
+    stored_energy_throughput_mwh = (
+        stored_discharge_energy_mwh + stored_charge_energy_mwh
+    )
+    conversion_loss_mwh = (
+        stored_discharge_energy_mwh
+        - delivered_discharge_ac_energy_mwh
+        + delivered_charge_ac_energy_mwh
+        - stored_charge_energy_mwh
+    )
+    if conversion_loss_mwh < -1e-12:
+        raise RuntimeError("conversion loss must be nonnegative")
+    conversion_loss_mwh = max(0.0, conversion_loss_mwh)
+    throughput_equivalent_full_cycles = (
+        stored_energy_throughput_mwh / (2.0 * state.energy_capacity_mwh)
+    )
+    conversion_balance_error_mwh = (
+        delivered_ac_energy_mwh
+        + dispatch_stored_energy_change_mwh
+        + conversion_loss_mwh
     )
     auxiliary_energy_mwh = math.fsum(
         interval.auxiliary_energy_mwh for interval in intervals
@@ -113,6 +165,15 @@ def simulate_energy_dispatch_sequence(
         requested_ac_energy_mwh=requested_ac_energy_mwh,
         delivered_ac_energy_mwh=delivered_ac_energy_mwh,
         curtailed_ac_energy_mwh=curtailed_ac_energy_mwh,
+        delivered_discharge_ac_energy_mwh=delivered_discharge_ac_energy_mwh,
+        delivered_charge_ac_energy_mwh=delivered_charge_ac_energy_mwh,
+        ac_energy_throughput_mwh=ac_energy_throughput_mwh,
+        stored_discharge_energy_mwh=stored_discharge_energy_mwh,
+        stored_charge_energy_mwh=stored_charge_energy_mwh,
+        stored_energy_throughput_mwh=stored_energy_throughput_mwh,
+        conversion_loss_mwh=conversion_loss_mwh,
+        throughput_equivalent_full_cycles=throughput_equivalent_full_cycles,
+        conversion_balance_error_mwh=conversion_balance_error_mwh,
         dispatch_stored_energy_change_mwh=dispatch_stored_energy_change_mwh,
         auxiliary_energy_mwh=auxiliary_energy_mwh,
         self_discharge_energy_mwh=self_discharge_energy_mwh,
@@ -190,6 +251,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Requested AC energy: {result.requested_ac_energy_mwh:.3f} MWh")
     print(f"Delivered AC energy: {result.delivered_ac_energy_mwh:.3f} MWh")
     print(f"Curtailed AC energy: {result.curtailed_ac_energy_mwh:.3f} MWh")
+    print(
+        "Delivered discharge/charge energy: "
+        f"{result.delivered_discharge_ac_energy_mwh:.3f} / "
+        f"{result.delivered_charge_ac_energy_mwh:.3f} MWh"
+    )
+    print(f"AC energy throughput: {result.ac_energy_throughput_mwh:.3f} MWh")
+    print(
+        "Stored discharge/charge energy: "
+        f"{result.stored_discharge_energy_mwh:.3f} / "
+        f"{result.stored_charge_energy_mwh:.3f} MWh"
+    )
+    print(
+        "Stored energy throughput: "
+        f"{result.stored_energy_throughput_mwh:.3f} MWh"
+    )
+    print(f"Conversion loss: {result.conversion_loss_mwh:.3f} MWh")
+    print(
+        "Throughput-equivalent full cycles: "
+        f"{result.throughput_equivalent_full_cycles:.6f}"
+    )
+    print(
+        "Conversion balance error: "
+        f"{result.conversion_balance_error_mwh:.3e} MWh"
+    )
     print(
         "Dispatch stored-energy change: "
         f"{result.dispatch_stored_energy_change_mwh:.3f} MWh"
