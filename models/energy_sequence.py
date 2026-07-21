@@ -30,6 +30,9 @@ class EnergyDispatchSequence:
     requested_ac_energy_mwh: float
     delivered_ac_energy_mwh: float
     curtailed_ac_energy_mwh: float
+    dispatch_stored_energy_change_mwh: float
+    auxiliary_energy_mwh: float
+    self_discharge_energy_mwh: float
     stored_energy_change_mwh: float
     soc_balance_error: float
     limited_interval_count: int
@@ -85,6 +88,15 @@ def simulate_energy_dispatch_sequence(
         / 60.0
         for interval in intervals
     )
+    dispatch_stored_energy_change_mwh = math.fsum(
+        interval.dispatch_stored_energy_change_mwh for interval in intervals
+    )
+    auxiliary_energy_mwh = math.fsum(
+        interval.auxiliary_energy_mwh for interval in intervals
+    )
+    self_discharge_energy_mwh = math.fsum(
+        interval.self_discharge_energy_mwh for interval in intervals
+    )
     stored_energy_change_mwh = math.fsum(
         interval.stored_energy_change_mwh for interval in intervals
     )
@@ -101,6 +113,9 @@ def simulate_energy_dispatch_sequence(
         requested_ac_energy_mwh=requested_ac_energy_mwh,
         delivered_ac_energy_mwh=delivered_ac_energy_mwh,
         curtailed_ac_energy_mwh=curtailed_ac_energy_mwh,
+        dispatch_stored_energy_change_mwh=dispatch_stored_energy_change_mwh,
+        auxiliary_energy_mwh=auxiliary_energy_mwh,
+        self_discharge_energy_mwh=self_discharge_energy_mwh,
         stored_energy_change_mwh=stored_energy_change_mwh,
         soc_balance_error=ending_soc - expected_ending_soc,
         limited_interval_count=sum(interval.energy_limited for interval in intervals),
@@ -144,6 +159,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--maximum-soc", type=float, default=0.90)
     parser.add_argument("--charge-efficiency", type=float, default=0.95)
     parser.add_argument("--discharge-efficiency", type=float, default=0.95)
+    parser.add_argument("--auxiliary-load-mw", type=float, default=0.0)
+    parser.add_argument("--self-discharge-rate-per-hour", type=float, default=0.0)
     return parser.parse_args(argv)
 
 
@@ -156,6 +173,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         maximum_soc=args.maximum_soc,
         charge_efficiency=args.charge_efficiency,
         discharge_efficiency=args.discharge_efficiency,
+        auxiliary_load_mw=args.auxiliary_load_mw,
+        self_discharge_rate_per_hour=args.self_discharge_rate_per_hour,
     )
     result = simulate_energy_dispatch_sequence(
         args.active_mw_profile,
@@ -171,6 +190,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Requested AC energy: {result.requested_ac_energy_mwh:.3f} MWh")
     print(f"Delivered AC energy: {result.delivered_ac_energy_mwh:.3f} MWh")
     print(f"Curtailed AC energy: {result.curtailed_ac_energy_mwh:.3f} MWh")
+    print(
+        "Dispatch stored-energy change: "
+        f"{result.dispatch_stored_energy_change_mwh:.3f} MWh"
+    )
+    print(f"Auxiliary energy: {result.auxiliary_energy_mwh:.3f} MWh")
+    print(f"Self-discharge energy: {result.self_discharge_energy_mwh:.3f} MWh")
     print(f"Stored energy change: {result.stored_energy_change_mwh:.3f} MWh")
     print(f"SOC balance error: {result.soc_balance_error:.3e}")
     for interval_index, interval in enumerate(result.intervals, start=1):

@@ -240,6 +240,29 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertAlmostEqual(result.capability.active_mw, 60.0)
         self.assertAlmostEqual(result.delivered_energy.ending_soc, 0.30)
 
+    def test_delivered_soc_includes_auxiliary_and_self_discharge_losses(self):
+        result = dispatch_frequency_watt(
+            50.0,
+            0.0,
+            0.0,
+            100.0,
+            energy_state=StorageEnergyState(
+                100.0,
+                0.80,
+                auxiliary_load_mw=2.0,
+                self_discharge_rate_per_hour=0.01,
+            ),
+            duration_minutes=120.0,
+        )
+
+        assert result.delivered_energy is not None
+        self.assertAlmostEqual(result.delivered_energy.ending_soc, 0.7445562852589148)
+        self.assertAlmostEqual(result.delivered_energy.auxiliary_energy_mwh, 4.0)
+        self.assertAlmostEqual(
+            result.delivered_energy.self_discharge_energy_mwh,
+            1.544371474108516,
+        )
+
     def test_energy_state_and_duration_must_be_provided_together(self):
         state = StorageEnergyState(100.0, 0.5)
         with self.assertRaisesRegex(ValueError, "must be provided together"):
@@ -386,6 +409,34 @@ class FrequencyWattTests(unittest.TestCase):
         self.assertIn("Energy limiting boundary: minimum_soc", output)
         self.assertIn("Ending SOC: 0.2000", output)
 
+    def test_cli_reports_delivered_storage_losses(self):
+        standard_output = io.StringIO()
+        with contextlib.redirect_stdout(standard_output):
+            exit_code = main(
+                [
+                    "--frequency-hz",
+                    "50",
+                    "--limit-mva",
+                    "100",
+                    "--duration-minutes",
+                    "120",
+                    "--energy-capacity-mwh",
+                    "100",
+                    "--initial-soc",
+                    "0.8",
+                    "--auxiliary-load-mw",
+                    "2",
+                    "--self-discharge-rate-per-hour",
+                    "0.01",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        output = standard_output.getvalue()
+        self.assertIn("Ending SOC: 0.7446", output)
+        self.assertIn("Auxiliary energy: 4.000 MWh", output)
+        self.assertIn("Self-discharge energy: 1.544 MWh", output)
+
     def test_cli_reports_ramp_limited_frequency_response(self):
         standard_output = io.StringIO()
         with contextlib.redirect_stdout(standard_output):
@@ -477,6 +528,17 @@ class FrequencyWattTests(unittest.TestCase):
                     "100",
                     "--minimum-soc",
                     "0.2",
+                ]
+            )
+        with self.assertRaisesRegex(ValueError, "must be provided together"):
+            main(
+                [
+                    "--frequency-hz",
+                    "50",
+                    "--limit-mva",
+                    "100",
+                    "--auxiliary-load-mw",
+                    "1",
                 ]
             )
 

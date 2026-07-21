@@ -145,13 +145,13 @@ reactive power means absorption at high voltage.
 The default breakpoints are configurable educational values, not a claim about
 any grid code, inverter setting, or interconnection agreement:
 
-| Region | Default Behavior |
-| --- | --- |
-| `V <= 0.92 pu` | Saturate at `+1.0 pu` reactive request. |
-| `0.92 < V < 0.98 pu` | Ramp linearly from injection to zero. |
-| `0.98 <= V <= 1.02 pu` | Hold a zero-reactive-power deadband. |
-| `1.02 < V < 1.08 pu` | Ramp linearly from zero to absorption. |
-| `V >= 1.08 pu` | Saturate at `-1.0 pu` reactive request. |
+| Region                 | Default Behavior                        |
+| ---------------------- | --------------------------------------- |
+| `V <= 0.92 pu`         | Saturate at `+1.0 pu` reactive request. |
+| `0.92 < V < 0.98 pu`   | Ramp linearly from injection to zero.   |
+| `0.98 <= V <= 1.02 pu` | Hold a zero-reactive-power deadband.    |
+| `1.02 < V < 1.08 pu`   | Ramp linearly from zero to absorption.  |
+| `V >= 1.08 pu`         | Saturate at `-1.0 pu` reactive request. |
 
 Run a low-voltage case where reactive-priority dispatch reduces active power to
 stay inside a 100 MVA limit:
@@ -340,9 +340,72 @@ inverter curtailment visible. The returned `energy` result describes the
 energy-bounded request, while `delivered_energy` recomputes ending SOC from the
 active power that remains after P-Q allocation.
 
-This is a single-interval energy accounting reference. It does not model
-self-discharge, auxiliary load, nonlinear efficiency, degradation, thermal
-derating, or uncertain capacity.
+## Auxiliary Demand And Self-Discharge
+
+Optional `--auxiliary-load-mw` and `--self-discharge-rate-per-hour` inputs add
+standing losses to the same energy boundary calculation. The stored-energy
+state follows this constant-coefficient interval equation:
+
+```text
+dE/dt = P_stored - P_auxiliary - lambda E
+```
+
+`P_stored` is negative AC discharge divided by discharge efficiency, or
+positive AC charge multiplied by charge efficiency. `lambda` is a continuous
+decay coefficient per hour, not a percentage value. For nonzero `lambda`, the
+model applies the exact zero-order-hold update:
+
+```text
+E_next = E_initial exp(-lambda dt)
+         + (P_stored - P_auxiliary) (1 - exp(-lambda dt)) / lambda
+```
+
+The zero-rate branch uses the exact linear limit, avoiding division by zero.
+`expm1` preserves accuracy for small rates and short intervals. Discharge and
+charge headroom are solved from the same update, so standing losses reduce
+available discharge and create additional charge room. The model rejects an
+interval when auxiliary and self-discharge losses would cross minimum SOC and
+the requested dispatch cannot supply enough charging energy to prevent it.
+
+Run an idle two-hour example with a 2 MW auxiliary demand and a continuous
+`0.01/h` self-discharge rate:
+
+```powershell
+python models/energy_limits.py `
+  --active-mw 0 --duration-minutes 120 `
+  --energy-capacity-mwh 100 --initial-soc 0.80 `
+  --auxiliary-load-mw 2 --self-discharge-rate-per-hour 0.01
+```
+
+Expected loss and state values:
+
+```text
+Ending SOC: 0.7446
+Auxiliary energy: 4.000 MWh
+Self-discharge energy: 1.544 MWh
+Stored energy change: -5.544 MWh
+```
+
+Every interval reports dispatch stored-energy change, auxiliary energy,
+self-discharge energy, and total stored-energy change. Their independent audit
+identity is:
+
+```text
+stored change = dispatch stored change - auxiliary energy - self-discharge
+```
+
+The terminology follows Sandia's distinction between
+[standby energy loss and self-discharge](https://www.osti.gov/servlets/purl/1368468).
+An NREL field study also shows why auxiliary demand must be treated as a stated
+project assumption: measured pump consumption changed with active power and
+SOC in its [utility-scale flow-battery demonstration](https://www.osti.gov/biblio/1464729).
+
+This reference deliberately uses one constant auxiliary load and one constant
+self-discharge rate. It assumes the storage medium supplies the auxiliary
+demand. Set auxiliary load to zero when a separate feeder supplies it, and
+account for that feeder outside this SOC model. Operating-state-dependent
+auxiliaries, nonlinear conversion efficiency, degradation, thermal derating,
+and uncertain capacity remain excluded.
 
 ## Multi-Interval Energy Trajectory
 
@@ -383,8 +446,8 @@ reconstructs final SOC from cumulative stored-energy change.
 
 This is a forward audit of a supplied power trajectory, not a scheduler or
 optimizer. It does not choose prices, services, or interval requests, and it
-does not compose frequency, ramp, or P-Q constraints across time. The standing
-loss, auxiliary-load, nonlinear-efficiency, degradation, thermal, and capacity
+does not compose frequency, ramp, or P-Q constraints across time. The constant
+loss assumptions and nonlinear-efficiency, degradation, thermal, and capacity
 limitations of the single-interval model still apply.
 
 ## Multi-Service Grid-Support Sequence
@@ -481,5 +544,5 @@ before P-Q allocation; a higher-priority reactive request may then curtail
 delivered active power beyond that setpoint. Sampled envelopes remain static
 external inputs and do not derive SOC, voltage, temperature, or grid-condition
 derating internally. Voltage feedback from reactive injection, frequency
-dynamics, controller latency, converter thermal limits, degradation, auxiliary
-demand, and uncertainty remain excluded.
+dynamics, controller latency, converter thermal limits, degradation,
+operating-state-dependent auxiliary demand, and uncertainty remain excluded.
