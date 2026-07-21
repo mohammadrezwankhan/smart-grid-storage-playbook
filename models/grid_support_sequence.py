@@ -23,6 +23,10 @@ try:
         reactive_axis_limit_mvar,
     )
     from models.ramp_limits import RampRateLimits
+    from models.temperature_derating import (
+        TemperaturePowerDeratingCurve,
+        load_temperature_derating_csv,
+    )
     from models.volt_var import VoltVarCurve
 except ModuleNotFoundError:
     from energy_limits import StorageEnergyState
@@ -41,6 +45,10 @@ except ModuleNotFoundError:
         reactive_axis_limit_mvar,
     )
     from ramp_limits import RampRateLimits
+    from temperature_derating import (
+        TemperaturePowerDeratingCurve,
+        load_temperature_derating_csv,
+    )
     from volt_var import VoltVarCurve
 
 
@@ -54,6 +62,7 @@ class GridSupportInterval:
     duration_minutes: float
     reactive_request_pu: float
     requested_reactive_mvar: float
+    temperature_c: float | None
     initial_soc: float
     ending_soc: float
     dispatch: FrequencyWattDispatch
@@ -80,6 +89,7 @@ class GridSupportSequence:
     soc_balance_error: float
     limited_interval_count: int
     storage_power_limited_interval_count: int
+    temperature_limited_interval_count: int
     ramp_limited_interval_count: int
     energy_limited_interval_count: int
     capability_limited_interval_count: int
@@ -129,6 +139,8 @@ def simulate_grid_support_sequence(
     capability_envelope: (
         PiecewiseCapabilityCurve | DirectionalCapabilityEnvelope | None
     ) = None,
+    temperature_c: Sequence[float] | None = None,
+    temperature_derating_curve: TemperaturePowerDeratingCurve | None = None,
 ) -> GridSupportSequence:
     """Compose grid-support controls while carrying plant state between intervals."""
 
@@ -141,6 +153,21 @@ def simulate_grid_support_sequence(
     energy_state.validate()
     frequency_curve.validate()
     voltage_curve.validate()
+    if (temperature_c is None) != (temperature_derating_curve is None):
+        raise ValueError(
+            "temperature_c and temperature_derating_curve must be provided together"
+        )
+    temperatures: tuple[float | None, ...]
+    if temperature_c is None:
+        temperatures = (None,) * len(frequencies)
+    else:
+        supplied_temperatures = tuple(temperature_c)
+        if len(supplied_temperatures) != len(frequencies):
+            raise ValueError("temperature profile must match the other profile lengths")
+        for index, temperature in enumerate(supplied_temperatures):
+            if not math.isfinite(temperature):
+                raise ValueError(f"temperature_c[{index}] must be finite")
+        temperatures = supplied_temperatures
     if (apparent_power_limit_mva is None) == (capability_envelope is None):
         raise ValueError(
             "provide exactly one circular MVA limit or sampled capability envelope"
@@ -183,11 +210,12 @@ def simulate_grid_support_sequence(
     previous_active_mw = initial_active_mw
     previous_filtered_frequency_hz = initial_filtered_frequency_hz
     interval_results: list[GridSupportInterval] = []
-    for frequency, voltage, baseline, duration in zip(
+    for frequency, voltage, baseline, duration, temperature in zip(
         frequencies,
         voltages,
         baselines,
         durations,
+        temperatures,
         strict=True,
     ):
         request_pu = voltage_curve.reactive_request_pu(voltage)
@@ -215,6 +243,8 @@ def simulate_grid_support_sequence(
                 None if frequency_filter_config is None else duration * 60.0
             ),
             capability_envelope=capability_envelope,
+            temperature_c=temperature,
+            temperature_derating_curve=temperature_derating_curve,
         )
         assert dispatch.delivered_energy is not None
         delivered_energy = dispatch.delivered_energy
@@ -226,6 +256,7 @@ def simulate_grid_support_sequence(
                 duration_minutes=duration,
                 reactive_request_pu=request_pu,
                 requested_reactive_mvar=requested_reactive_mvar,
+                temperature_c=temperature,
                 initial_soc=delivered_energy.initial_soc,
                 ending_soc=delivered_energy.ending_soc,
                 dispatch=dispatch,
@@ -307,6 +338,10 @@ def simulate_grid_support_sequence(
         dispatch = interval.dispatch
         return (
             dispatch.storage_power_limited
+            or (
+                dispatch.temperature_derating is not None
+                and dispatch.temperature_derating.temperature_limited
+            )
             or (dispatch.ramp is not None and dispatch.ramp.ramp_limited)
             or (dispatch.energy is not None and dispatch.energy.energy_limited)
             or dispatch.capability.limited
@@ -331,6 +366,11 @@ def simulate_grid_support_sequence(
         limited_interval_count=sum(interval_is_limited(item) for item in intervals),
         storage_power_limited_interval_count=sum(
             item.dispatch.storage_power_limited for item in intervals
+        ),
+        temperature_limited_interval_count=sum(
+            item.dispatch.temperature_derating is not None
+            and item.dispatch.temperature_derating.temperature_limited
+            for item in intervals
         ),
         ramp_limited_interval_count=sum(
             item.dispatch.ramp is not None and item.dispatch.ramp.ramp_limited
@@ -402,6 +442,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full-response-deviation-hz", type=float, default=0.50)
     parser.add_argument("--max-discharge-mw", type=float, default=100.0)
     parser.add_argument("--max-charge-mw", type=float, default=100.0)
+    parser.add_argument("--temperature-c-profile", type=_parse_number_series)
+    parser.add_argument("--temperature-derating-csv", type=Path)
     parser.add_argument("--low-saturation-pu", type=float, default=0.92)
     parser.add_argument("--low-deadband-pu", type=float, default=0.98)
     parser.add_argument("--high-deadband-pu", type=float, default=1.02)
@@ -422,6 +464,11 @@ def _limit_labels(interval: GridSupportInterval) -> str:
         labels.append("storage_power")
     if dispatch.ramp is not None and dispatch.ramp.ramp_limited:
         labels.append("ramp")
+    if (
+        dispatch.temperature_derating is not None
+        and dispatch.temperature_derating.temperature_limited
+    ):
+        labels.append("temperature")
     if dispatch.energy is not None and dispatch.energy.energy_limited:
         labels.append("energy")
     if dispatch.capability.limited:
@@ -480,6 +527,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.frequency_filter_time_constant_seconds
         )
 
+    temperature_inputs = (
+        args.temperature_c_profile,
+        args.temperature_derating_csv,
+    )
+    if any(value is not None for value in temperature_inputs) and not all(
+        value is not None for value in temperature_inputs
+    ):
+        raise ValueError(
+            "temperature_c_profile and temperature_derating_csv "
+            "must be provided together"
+        )
+    temperature_derating_curve = None
+    if args.temperature_derating_csv is not None:
+        temperature_derating_curve = load_temperature_derating_csv(
+            args.temperature_derating_csv
+        )
+
     result = simulate_grid_support_sequence(
         frequency_hz=args.frequency_hz_profile,
         voltage_pu=args.voltage_pu_profile,
@@ -517,6 +581,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         frequency_filter_config=filter_config,
         initial_filtered_frequency_hz=args.initial_filtered_frequency_hz,
         capability_envelope=capability_envelope,
+        temperature_c=args.temperature_c_profile,
+        temperature_derating_curve=temperature_derating_curve,
     )
 
     if isinstance(capability_envelope, DirectionalCapabilityEnvelope):
@@ -533,6 +599,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Capability model: circular limit ({args.limit_mva:.3f} MVA)")
     print(f"Intervals: {len(result.intervals)}")
     print(f"Limited intervals: {result.limited_interval_count}")
+    if temperature_derating_curve is not None:
+        print(
+            "Temperature derating model: piecewise curve "
+            f"({len(temperature_derating_curve.points)} points)"
+        )
+        print(
+            "Temperature-limited intervals: "
+            f"{result.temperature_limited_interval_count}"
+        )
     print(f"Total duration: {result.total_duration_minutes:.3f} minutes")
     print(f"Initial SOC: {result.initial_soc:.4f}")
     print(f"Ending SOC: {result.ending_soc:.4f}")
@@ -561,9 +636,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"SOC balance error: {result.soc_balance_error:.3e}")
     for index, interval in enumerate(result.intervals, start=1):
         dispatch = interval.dispatch
+        temperature_text = (
+            ""
+            if interval.temperature_c is None
+            else f"temperature={interval.temperature_c:.3f} C, "
+        )
         print(
             f"Interval {index}: frequency={interval.frequency_hz:.3f} Hz, "
             f"voltage={interval.voltage_pu:.3f} pu, "
+            f"{temperature_text}"
             f"requested_p={dispatch.unconstrained_active_mw:.3f} MW, "
             f"requested_q={interval.requested_reactive_mvar:.3f} MVAr, "
             f"delivered_p={dispatch.capability.active_mw:.3f} MW, "
