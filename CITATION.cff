@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this playbook or its reference models in research or teaching, please cite this repository."
+type: software
+title: "Smart Grid Storage Playbook"
+authors:
+  - family-names: Khan
+    given-names: Mohammad Rezwan
+    orcid: "https://orcid.org/0000-0002-1532-0598"
+repository-code: "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook"
+url: "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook"
+license: MIT
+keywords:
+  - smart grids
+  - grid-forming
+  - battery energy storage
+  - power systems

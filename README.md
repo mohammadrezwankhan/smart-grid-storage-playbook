@@ -5,6 +5,14 @@
 Explainable smart-grid and grid-forming BESS concepts for engineers, students,
 and project teams.
 
+## Documentation Map
+
+- [What this covers](#what-this-covers) sets the intended audience and domain.
+- [Starter pages](#starter-pages) is the concept and checklist reading path.
+- [Executable reference](#run-the-executable-reference) runs the dependency-free models.
+- [Model assumptions and limitations](models/README.md) defines the interpretation boundary.
+- [Contribution entry points](#contribution-entry-points) and [citation metadata](CITATION.cff) support shared work.
+
 ## What This Covers
 
 - Grid-following vs grid-forming storage.
@@ -92,6 +100,7 @@ case-notes/
 glossary/
 README.md
 CONTRIBUTING.md
+CITATION.cff
 LICENSE
 ```
 
@@ -182,6 +191,15 @@ battery warranty. The multi-interval energy reference reports separate AC and
 stored-energy throughput, conversion loss, and throughput-equivalent full
 cycles without claiming a degradation model.
 
+## Scope and Limitations
+
+This playbook is educational and a reference implementation, not a grid-code
+compliance determination, protection-setting approval, plant-controller
+specification, or battery-warranty assessment. The executable models use
+explicit assumptions and illustrative inputs; replace them with project data,
+validated equipment limits, applicable standards, and independent engineering
+review before using the results in a design or operational decision.
+
 ## Contribution Entry Points
 
 - Add a storage dispatch concept page.
@@ -211,3 +229,13 @@ cycles without claiming a degradation model.
 - Add project-specific examples to the service stacking conflict log.
 - Add project-specific examples to the system operator query log.
 - Add project-specific examples to the playbook next research questions.
+
+## Citation
+
+If this playbook supports research, teaching, or a project review, cite the
+machine-readable [CITATION.cff](CITATION.cff) metadata and identify the model
+assumptions, input profiles, and source material used.
+
+## License
+
+Released under the [MIT License](LICENSE).
