@@ -2,15 +2,52 @@ from __future__ import annotations
 
 import contextlib
 import io
+import math
 import unittest
 from pathlib import Path
 
-from models.energy_limits import StorageEnergyState
+from models.energy_limits import StorageEnergyState, limit_active_power_by_energy
 from models.pq_capability import load_directional_capability_csv
 from models.reserve_headroom import calculate_reserve_headroom, main
 
 
 class ReserveHeadroomTests(unittest.TestCase):
+    def test_charging_baseline_has_upward_reserve_while_covering_auxiliary_loss(self):
+        state = StorageEnergyState(
+            energy_capacity_mwh=100.0,
+            initial_soc=0.20,
+            minimum_soc=0.20,
+            charge_efficiency=0.90,
+            auxiliary_load_mw=1.0,
+        )
+        result = calculate_reserve_headroom(-5.0, 60.0, 10.0, 10.0, state)
+        self.assertAlmostEqual(result.upward_limit_active_mw, -1.0 / 0.90)
+        self.assertAlmostEqual(result.upward_reserve_mw, 5.0 - 1.0 / 0.90)
+        self.assertAlmostEqual(result.downward_reserve_mw, 5.0)
+        self.assertTrue(result.upward_energy_limited)
+        delivered = limit_active_power_by_energy(result.upward_limit_active_mw, 60.0, state)
+        self.assertAlmostEqual(delivered.ending_soc, state.minimum_soc)
+
+    def test_required_charging_endpoint_uses_exact_self_discharge_equation(self):
+        state = StorageEnergyState(
+            energy_capacity_mwh=100.0,
+            initial_soc=0.205,
+            minimum_soc=0.20,
+            charge_efficiency=0.90,
+            auxiliary_load_mw=1.0,
+            self_discharge_rate_per_hour=0.02,
+        )
+        result = calculate_reserve_headroom(-5.0, 120.0, 10.0, 10.0, state)
+        retention = math.exp(-0.02 * 2.0)
+        equivalent_hours = -math.expm1(-0.02 * 2.0) / 0.02
+        loss_only_energy = 20.5 * retention - equivalent_hours
+        expected = -(20.0 - loss_only_energy) / (0.90 * equivalent_hours)
+        self.assertAlmostEqual(result.upward_limit_active_mw, expected)
+        delivered = limit_active_power_by_energy(result.upward_limit_active_mw, 120.0, state)
+        self.assertAlmostEqual(delivered.ending_soc, state.minimum_soc)
+        with self.assertRaises(ValueError):
+            limit_active_power_by_energy(result.upward_limit_active_mw + 0.001, 120.0, state)
+
     def test_soc_headroom_limits_both_reserve_directions(self):
         result = calculate_reserve_headroom(
             baseline_active_mw=10.0,

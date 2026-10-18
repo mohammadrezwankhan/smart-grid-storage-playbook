@@ -7,7 +7,11 @@ from pathlib import Path
 from typing import Sequence
 
 try:
-    from models.energy_limits import StorageEnergyState, limit_active_power_by_energy
+    from models.energy_limits import (
+        StorageEnergyState,
+        _retention_terms,
+        limit_active_power_by_energy,
+    )
     from models.pq_capability import (
         CapabilityBoundary,
         PowerPriority,
@@ -16,7 +20,11 @@ try:
         load_directional_capability_csv,
     )
 except ModuleNotFoundError:
-    from energy_limits import StorageEnergyState, limit_active_power_by_energy
+    from energy_limits import (
+        StorageEnergyState,
+        _retention_terms,
+        limit_active_power_by_energy,
+    )
     from pq_capability import (
         CapabilityBoundary,
         PowerPriority,
@@ -150,8 +158,27 @@ def calculate_reserve_headroom(
             "baseline_active_mw cannot be sustained for the response duration"
         )
 
+    # A feasible charging baseline can provide upward reserve by reducing its
+    # charge while still covering standing losses. In that case the highest
+    # sustainable replacement setpoint is itself negative.
+    retention, equivalent_hours = _retention_terms(
+        state.self_discharge_rate_per_hour,
+        duration_minutes / 60.0,
+    )
+    loss_only_energy_mwh = (
+        state.initial_soc * state.energy_capacity_mwh * retention
+        - state.auxiliary_load_mw * equivalent_hours
+    )
+    energy_deficit_mwh = (
+        state.minimum_soc * state.energy_capacity_mwh - loss_only_energy_mwh
+    )
+    upward_request_mw = upward_capability_limit_mw
+    if energy_deficit_mwh > 1e-12:
+        upward_request_mw = -energy_deficit_mwh / (
+            state.charge_efficiency * equivalent_hours
+        )
     upward = limit_active_power_by_energy(
-        upward_capability_limit_mw,
+        upward_request_mw,
         duration_minutes,
         state,
     )
@@ -175,7 +202,12 @@ def calculate_reserve_headroom(
             0.0,
             baseline_active_mw - downward.delivered_active_mw,
         ),
-        upward_energy_limited=upward.energy_limited,
+        upward_energy_limited=not math.isclose(
+            upward.delivered_active_mw,
+            upward_capability_limit_mw,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
         downward_energy_limited=downward.energy_limited,
         upward_capability_limited=upward_capability_limited,
         downward_capability_limited=downward_capability_limited,
