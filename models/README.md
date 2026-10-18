@@ -554,7 +554,9 @@ Downward energy limited: true
 ```
 
 Positive power is discharge and negative power is charge. Upward reserve is
-the sustained discharge limit minus the baseline. Downward reserve is the
+the highest sustained active-power setpoint minus the baseline. Near minimum
+SOC, this upper setpoint can remain negative when charging must continue to
+cover auxiliary demand and self-discharge. Downward reserve is the
 baseline minus the sustained charge limit, so a discharging baseline can have
 more downward headroom than the charge limit magnitude alone.
 
