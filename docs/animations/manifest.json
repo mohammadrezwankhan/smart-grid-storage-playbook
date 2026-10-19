@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "repository": "smart-grid-storage-playbook",
+  "preserved_current_commit": "90b0b57c1776cc77955d7c281972e005a3a7402c",
+  "animations": [
+    {
+      "kind": "image",
+      "title": "Original floating-layer SVG",
+      "badge": "Earlier animated media",
+      "description": "Floating isometric tiers, pulsing circuits, and flowing dashed traces from the earlier repository hero.",
+      "format": "Animated SVG",
+      "preview": "media/hero-25d-cbf302005ff1.svg",
+      "preview_sha256": "237320f76cd3b927ae917a6b97314fef164c3941d620ba478e8c504d3ea1e533",
+      "motion_identity": "cbf302005ff16758600ba48f87605c7f6128d021de4d4865c66fd458b737e649",
+      "sources": [
+        {
+          "path": "assets/hero-25d.svg",
+          "commit": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+          "sha256": "0c667869d65bf4372915346fa8962d34e00146dcf4fb03116d09ddb452dd58e8",
+          "blob": "9434b37f4e930c7f6625d5d89eca4d5b9a4aa341",
+          "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/assets/hero-25d.svg"
+        },
+        {
+          "path": "assets/hero-25d.svg",
+          "commit": "cf0ff02572f9b5a694f4dd7e1202f3765a150f67",
+          "sha256": "2b475f124a4ba7f574857e18458ce43e8df4dfa408760f02980cd583c1536f53",
+          "blob": "54b319b8905c2364f837cdbb0c2f158c2ba827e3",
+          "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/cf0ff02572f9b5a694f4dd7e1202f3765a150f67/assets/hero-25d.svg"
+        }
+      ]
+    },
+    {
+      "kind": "waveform",
+      "title": "Original interactive waveform",
+      "badge": "Previous dashboard animation",
+      "description": "The earlier 2.5D perspective card and its moving waveform, with the original visual formulas and sliders.",
+      "preview": "waveform.html",
+      "preview_sha256": "329a2bf5196f89602a71bc4ebb265d5bdb4cda657de3c121c206ed86e0b4c9cf",
+      "sources": [
+        {
+          "path": "docs/index.html",
+          "commit": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+          "blob": "2fc5d1d805a04174f39cfbce62d1af9dee08fbda",
+          "sha256": "1048a4e7affb4b8f6bc2fd08f73cbe6fe3ad4e22fa4d11460c5f37ae84b1225a",
+          "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/docs/index.html"
+        },
+        {
+          "path": "docs/index.html",
+          "commit": "cf0ff02572f9b5a694f4dd7e1202f3765a150f67",
+          "blob": "9b00cbd42749f54c25d509bbf8e741e6446189e8",
+          "sha256": "fa8b2f89f2460c300f67abd15fbd6258141ece921d7bad113dd7507ba3a77546",
+          "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/cf0ff02572f9b5a694f4dd7e1202f3765a150f67/docs/index.html"
+        }
+      ]
+    }
+  ],
+  "native_links": [],
+  "historical_source_links": []
+}
