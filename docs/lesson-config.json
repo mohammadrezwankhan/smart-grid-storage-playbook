@@ -1,0 +1,93 @@
+{
+  "repository": "smart-grid-storage-playbook",
+  "domain": "DOMAIN_A",
+  "title": "Smart Grid & Grid-Forming Storage Playbook",
+  "version": "2.0.0",
+  "author": "Mohammad Rezwan Khan",
+  "lessons": [
+    {
+      "id": "L01",
+      "title": "Grid-Forming (GFM) vs. Grid-Following (GFL) Fundamental Principles",
+      "level": "Beginner",
+      "duration": "30 mins",
+      "config_file": "simulations/gfm_vs_gfl_theory.py",
+      "summary": "Understand voltage-source vs. current-source inverter control paradigms and analyze why PLL-based GFL inverters lose synchronism in weak grids (SCR < 1.5).",
+      "inputs": [
+        "Variable short-circuit ratio (SCR) grid model",
+        "Phase angle perturbation step"
+      ],
+      "parameters": {
+        "GridSCR": 1.2,
+        "PLL_Bandwidth_Hz": 25.0,
+        "VoltageSourceVoltage_pu": 1.0
+      },
+      "checkpoints": [
+        "Observe GFL inverter instability under weak grid conditions",
+        "Verify GFM inverter self-synchronizing stability"
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "Virtual Synchronous Machine (VSM) Swing Equation & Inertia Emulation",
+      "level": "Intermediate",
+      "duration": "45 mins",
+      "config_file": "simulations/vsm_swing_equation.py",
+      "summary": "Implement virtual rotor inertia J and damping coefficient D in software to emulate synchronous generator electromechanical dynamics.",
+      "inputs": [
+        "Sudden 500 MW loss-of-generation contingency",
+        "System base frequency 50 Hz"
+      ],
+      "parameters": {
+        "InertiaConstant_H_sec": 5.0,
+        "DampingFactor_D_pu": 20.0,
+        "InverterRating_MVA": 100.0
+      },
+      "checkpoints": [
+        "Measure Rate of Change of Frequency (RoCoF) dampening",
+        "Observe smooth natural power injection without communication delays"
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "Fast Frequency Response (FFR) & RoCoF Mitigation under Contingency",
+      "level": "Advanced",
+      "duration": "60 mins",
+      "config_file": "simulations/ffr_rocof_mitigation.py",
+      "summary": "Simulate sub-second governor response and dynamic droop activation to arrest frequency decline and stabilize system nadir within 500 ms.",
+      "inputs": [
+        "Under-frequency trigger event (< 49.8 Hz)",
+        "BESS state-of-charge headroom"
+      ],
+      "parameters": {
+        "ReactionTime_ms": 80.0,
+        "RampRate_MW_per_sec": 250.0,
+        "FullPowerHoldTime_sec": 15.0
+      },
+      "checkpoints": [
+        "Ensure frequency remains above statutory disconnect limit (49.2 Hz)",
+        "Prevent over-discharge battery threshold breach"
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "Weak-Grid High-Impedance Islanding & Black-Start Restoration",
+      "level": "Production",
+      "duration": "75 mins",
+      "config_file": "simulations/blackstart_grid_restoration.py",
+      "summary": "Step-by-step restoration of an unenergized transmission network: energizing transformer inrush without saturation trip, and stabilizing local load.",
+      "inputs": [
+        "Zero-voltage de-energized island network",
+        "Transformer magnetizing curve with remanent flux"
+      ],
+      "parameters": {
+        "SoftStart_RampTime_sec": 3.0,
+        "InrushMitigation_FluxControl": true,
+        "TargetFrequency_Hz": 50.0
+      },
+      "checkpoints": [
+        "Eliminate destructive harmonic resonance overvoltages",
+        "Establish stable 132 kV voltage backbone for subsequent generation restart"
+      ]
+    }
+  ]
+}
