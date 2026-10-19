@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "repository": "mohammadrezwankhan/smart-grid-storage-playbook",
+  "display_name": "Smart Grid Storage Playbook",
+  "description": "Explainable BESS grid-support models, configuration checks and practical engineering reading paths.",
+  "domain": "DOMAIN_A",
+  "theme": {
+    "accent": "#00E5FF",
+    "secondary": "#00E676",
+    "surface": "#0A192F",
+    "glow": "rgba(0, 229, 255, 0.35)",
+    "label": "Energy systems",
+    "short": "Energy"
+  },
+  "repo_type": "educational-reference-models",
+  "source_revision": "24de0b792ecb4357b42be5bbe20183c1112b5702",
+  "source_snapshot_date": "2026-10-19",
+  "repo_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook",
+  "homepage": "https://mrkhan.co.technology/models/smart-grid-storage-playbook/",
+  "upstream": null,
+  "lessons": [
+    {
+      "id": "path-01",
+      "title": "Define the grid-service question",
+      "summary": "Read grid-forming versus grid-following concepts, dispatch basics and the evidence checklist.",
+      "objective": "Name the service, operating mode and evidence required before selecting an equation.",
+      "checkpoint": "Distinguish a requested service from proof it was tested or approved.",
+      "level": "Foundation",
+      "tags": [
+        "foundations",
+        "engineering",
+        "grid-control",
+        "optimization",
+        "evidence"
+      ],
+      "source_paths": [
+        "concepts/grid-forming-vs-grid-following.md",
+        "concepts/storage-dispatch-basics.md",
+        "checklists/grid-service-evidence-checklist.md"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/concepts/grid-forming-vs-grid-following.md",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/concepts/storage-dispatch-basics.md",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/checklists/grid-service-evidence-checklist.md"
+      ],
+      "parameters": [],
+      "command": null,
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-02",
+      "title": "Allocate a P-Q request",
+      "summary": "Compare circular capability with the committed directional envelope.",
+      "objective": "Understand active, reactive and proportional allocation priorities.",
+      "checkpoint": "For the documented circular 80 MW / 80 MVAr request at 100 MVA with active priority, the guide expects 80 MW and 60 MVAr; this audit has not rerun that calculation.",
+      "level": "Foundation",
+      "tags": [
+        "foundations",
+        "engineering",
+        "data-provenance"
+      ],
+      "source_paths": [
+        "models/pq_capability.py",
+        "models/data/illustrative_directional_capability.csv",
+        "models/README.md"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/pq_capability.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/data/illustrative_directional_capability.csv",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/README.md"
+      ],
+      "parameters": [
+        {
+          "name": "--active-mw",
+          "description": "Requested signed active power",
+          "default": 80,
+          "unit": "MW example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--reactive-mvar",
+          "description": "Requested signed reactive power",
+          "default": 80,
+          "unit": "MVAr example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--limit-mva",
+          "description": "Circular apparent-power limit",
+          "default": 100,
+          "unit": "MVA example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--priority",
+          "description": "Allocation priority when the command is infeasible",
+          "default": "active",
+          "unit": "active/reactive/proportional",
+          "source_path": "models/pq_capability.py",
+          "definition_basis": "documented_or_source_default"
+        }
+      ],
+      "command": "python models/pq_capability.py --active-mw 80 --reactive-mvar 80 --limit-mva 100 --priority active",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-03",
+      "title": "Trace energy and response limits",
+      "summary": "Read single-interval SOC limits and the multi-interval energy trajectory.",
+      "objective": "Keep AC energy, stored energy, conversion loss and SOC constraints distinct.",
+      "checkpoint": "Check the initial state, charge/discharge efficiencies and interval duration; throughput-equivalent cycles are not a degradation forecast.",
+      "level": "Applied",
+      "tags": [
+        "application",
+        "engineering",
+        "state-estimation",
+        "evidence"
+      ],
+      "source_paths": [
+        "models/energy_limits.py",
+        "models/energy_sequence.py",
+        "models/README.md",
+        "tests/test_energy_sequence.py"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/energy_limits.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/energy_sequence.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/README.md",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/tests/test_energy_sequence.py"
+      ],
+      "parameters": [
+        {
+          "name": "--energy-capacity-mwh",
+          "description": "Energy capacity used by the documented example",
+          "default": 50,
+          "unit": "MWh example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--initial-soc",
+          "description": "Initial state-of-charge fraction in the example",
+          "default": 0.5,
+          "unit": "fraction example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--discharge-efficiency",
+          "description": "Stored-energy to AC-energy conversion efficiency in the example",
+          "default": 0.9,
+          "unit": "fraction example",
+          "source_path": "README.md",
+          "definition_basis": "documented_or_source_default"
+        }
+      ],
+      "command": "python models/energy_limits.py --active-mw 100 --duration-minutes 60 --energy-capacity-mwh 50 --initial-soc 0.50 --minimum-soc 0.20 --discharge-efficiency 0.90",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-04",
+      "title": "Review a composed grid-support sequence",
+      "summary": "Follow state between frequency-watt and Volt-VAR requests, then inspect tests and handover evidence prompts.",
+      "objective": "Connect interval controls without losing sign conventions or energy state.",
+      "checkpoint": "Locate frequency, voltage, baseline-power and duration profiles; identify which constraints are illustrative inputs and which outputs require project validation.",
+      "level": "Applied",
+      "tags": [
+        "application",
+        "engineering",
+        "grid-control",
+        "evidence"
+      ],
+      "source_paths": [
+        "models/grid_support_sequence.py",
+        "models/frequency_watt.py",
+        "models/volt_var.py",
+        "tests/test_grid_support_sequence.py",
+        "checklists/grid-service-evidence-checklist.md"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/grid_support_sequence.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/frequency_watt.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/models/volt_var.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/tests/test_grid_support_sequence.py",
+        "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/checklists/grid-service-evidence-checklist.md"
+      ],
+      "parameters": [],
+      "command": "python -m unittest discover -s tests -v",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    }
+  ]
+}

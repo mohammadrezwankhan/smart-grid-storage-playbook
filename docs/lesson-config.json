@@ -1,93 +1,314 @@
 {
-  "repository": "smart-grid-storage-playbook",
-  "domain": "DOMAIN_A",
-  "title": "Smart Grid & Grid-Forming Storage Playbook",
-  "version": "2.0.0",
-  "author": "Mohammad Rezwan Khan",
-  "lessons": [
+  "$schema": "./lesson-config.schema.json",
+  "schema_version": "1.0",
+  "repository": {
+    "owner": "mohammadrezwankhan",
+    "slug": "smart-grid-storage-playbook",
+    "name": "smart-grid-storage-playbook",
+    "title": "Smart Grid Storage Constraints Lab",
+    "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook",
+    "default_branch": "main",
+    "description": "Explore grid services through BESS power, energy, reserve, frequency, voltage & capability constraints with worked labs.",
+    "summary": "The playbook pairs concept notes with executable storage and grid-support constraints. The browser begins with active-power balance before directing the learner to native energy, P–Q, ramp, reserve, and derating models.",
+    "audience": "Power-system students, BESS engineers, and project teams reviewing grid-service assumptions.",
+    "topics": [
+      "smart-grid",
+      "bess",
+      "energy-storage",
+      "grid-forming",
+      "grid-following",
+      "power-systems",
+      "renewable-integration",
+      "grid-services",
+      "frequency-response",
+      "volt-var",
+      "reactive-power",
+      "power-quality",
+      "python",
+      "engineering-education",
+      "model-validation"
+    ],
+    "source_paths": [
+      "README.md",
+      "models/README.md",
+      "models/pq_capability.py",
+      "models/energy_limits.py",
+      "models/energy_sequence.py",
+      "models/grid_support_sequence.py",
+      "models/reserve_headroom.py",
+      "tests/test_grid_support_sequence.py",
+      "tests/test_energy_sequence.py"
+    ],
+    "is_fork": false,
+    "upstream": null
+  },
+  "domain": {
+    "id": "A",
+    "name": "Energy systems",
+    "primary": "#00E5FF",
+    "secondary": "#00E676",
+    "surface": "#0A192F",
+    "glow": "rgba(0,229,255,0.35)"
+  },
+  "model": {
+    "title": "Grid-service reasoning · balance before constraints",
+    "timeUnit": "h",
+    "horizon": 24,
+    "parameters": [
+      {
+        "key": "demandKW",
+        "label": "Demand baseline",
+        "unit": "kW",
+        "min": 100,
+        "max": 1200,
+        "step": 25,
+        "default": 500,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "solarKW",
+        "label": "Solar peak",
+        "unit": "kW",
+        "min": 0,
+        "max": 1400,
+        "step": 25,
+        "default": 600,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "batteryKW",
+        "label": "Battery discharge",
+        "unit": "kW",
+        "min": 0,
+        "max": 300,
+        "step": 10,
+        "default": 0,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "carbonGPerKWh",
+        "label": "Grid carbon factor",
+        "unit": "g/kWh",
+        "min": 0,
+        "max": 800,
+        "step": 25,
+        "default": 400,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      }
+    ],
+    "metrics": [
+      {
+        "key": "gridImportKW",
+        "label": "Grid import",
+        "unit": "kW",
+        "decimals": 1
+      },
+      {
+        "key": "solarOutputKW",
+        "label": "Solar output",
+        "unit": "kW",
+        "decimals": 1
+      },
+      {
+        "key": "renewablePct",
+        "label": "Solar demand share",
+        "unit": "%",
+        "decimals": 1
+      },
+      {
+        "key": "emissionsKgPerH",
+        "label": "Grid emissions rate",
+        "unit": "kg/h",
+        "decimals": 1
+      }
+    ],
+    "equation": "solar = S · max(0, sin(π(t−6)/12)); demand = D · (0.8 + 0.18 cos(2π(t−19)/24) + 0.12 exp(−((t−19)/3)²)); import = max(demand−solar−battery, 0).",
+    "assumptions": [
+      "An idealized clear-day profile represents one 24-hour period.",
+      "Battery discharge is a fixed external power contribution; energy inventory and charge scheduling are omitted.",
+      "Solar share is capped at 100%; exports are not credited; grid carbon intensity is constant.",
+      "Browser power is in kW; native grid-service examples often use MW/MWh. Convert units explicitly before comparison.",
+      "The solar-demand shape is synthetic and does not model network frequency, voltage, reactive power, islanding, or grid-forming control.",
+      "A fixed battery contribution is a requested screening assumption, not a feasible or approved dispatch command."
+    ],
+    "kind": "grid",
+    "introduction": "This single-bus active-power screen leaves battery inventory and inverter capability unconstrained. The native playbook supplies the missing energy, P–Q, ramp, frequency/voltage, reserve, and temperature constraints.",
+    "calibration_status": "Uncalibrated synthetic teaching proxy"
+  },
+  "modules": [
     {
-      "id": "L01",
-      "title": "Grid-Forming (GFM) vs. Grid-Following (GFL) Fundamental Principles",
-      "level": "Beginner",
-      "duration": "30 mins",
-      "config_file": "simulations/gfm_vs_gfl_theory.py",
-      "summary": "Understand voltage-source vs. current-source inverter control paradigms and analyze why PLL-based GFL inverters lose synchronism in weak grids (SCR < 1.5).",
-      "inputs": [
-        "Variable short-circuit ratio (SCR) grid model",
-        "Phase angle perturbation step"
+      "id": "module-1",
+      "title": "Draw the requested active-power balance",
+      "objective": "Identify a grid-service request before applying feasibility constraints.",
+      "minutes": 12,
+      "steps": [
+        "Read the playbook’s model map and active/reactive capability rule.",
+        "Apply a 500 kW demand baseline, 600 kW PV peak, and no battery contribution.",
+        "Inspect the evening import and identify which missing constraint would matter if storage supplied it."
       ],
-      "parameters": {
-        "GridSCR": 1.2,
-        "PLL_Bandwidth_Hz": 25.0,
-        "VoltageSourceVoltage_pu": 1.0
+      "preset": {
+        "demandKW": 500,
+        "solarKW": 600,
+        "batteryKW": 0,
+        "carbonGPerKWh": 400
       },
       "checkpoints": [
-        "Observe GFL inverter instability under weak grid conditions",
-        "Verify GFM inverter self-synchronizing stability"
-      ]
+        {
+          "label": "Evening demand supplied by the grid is 550 kW",
+          "metric": "gridImportKW",
+          "operator": "==",
+          "expected": 550,
+          "tolerance": 0.02,
+          "atTime": 19
+        },
+        {
+          "label": "PV is unavailable at 19:00",
+          "metric": "solarOutputKW",
+          "operator": "==",
+          "expected": 0,
+          "tolerance": 0.02,
+          "atTime": 19
+        }
+      ],
+      "reflection": "Why must a requested active-power service be checked against both energy inventory and inverter apparent-power capability?",
+      "source_paths": [
+        "models/README.md",
+        "models/pq_capability.py"
+      ],
+      "level": "Foundation"
     },
     {
-      "id": "L02",
-      "title": "Virtual Synchronous Machine (VSM) Swing Equation & Inertia Emulation",
-      "level": "Intermediate",
-      "duration": "45 mins",
-      "config_file": "simulations/vsm_swing_equation.py",
-      "summary": "Implement virtual rotor inertia J and damping coefficient D in software to emulate synchronous generator electromechanical dynamics.",
-      "inputs": [
-        "Sudden 500 MW loss-of-generation contingency",
-        "System base frequency 50 Hz"
+      "id": "module-2",
+      "title": "Keep power and energy headroom separate",
+      "objective": "Explain why a lower import value does not prove sustained reserve availability.",
+      "minutes": 15,
+      "steps": [
+        "Add a fixed 100 kW battery contribution while retaining the same demand and PV.",
+        "Predict the evening import and calculate the AC energy requested over a 30-minute service.",
+        "Read the native energy-limits and reserve-headroom interfaces to identify SOC floors and efficiency terms."
       ],
-      "parameters": {
-        "InertiaConstant_H_sec": 5.0,
-        "DampingFactor_D_pu": 20.0,
-        "InverterRating_MVA": 100.0
+      "preset": {
+        "demandKW": 500,
+        "solarKW": 600,
+        "batteryKW": 100,
+        "carbonGPerKWh": 400
       },
       "checkpoints": [
-        "Measure Rate of Change of Frequency (RoCoF) dampening",
-        "Observe smooth natural power injection without communication delays"
-      ]
+        {
+          "label": "Battery contribution reduces evening import to 450 kW",
+          "metric": "gridImportKW",
+          "operator": "==",
+          "expected": 450,
+          "tolerance": 0.02,
+          "atTime": 19
+        },
+        {
+          "label": "Associated grid-emissions rate is 180 kg/h",
+          "metric": "emissionsKgPerH",
+          "operator": "==",
+          "expected": 180,
+          "tolerance": 0.02,
+          "atTime": 19
+        }
+      ],
+      "reflection": "What would change if the reserve request had to be sustained for two hours instead of thirty minutes?",
+      "source_paths": [
+        "models/energy_limits.py",
+        "models/reserve_headroom.py"
+      ],
+      "level": "Parameter study"
     },
     {
-      "id": "L03",
-      "title": "Fast Frequency Response (FFR) & RoCoF Mitigation under Contingency",
-      "level": "Advanced",
-      "duration": "60 mins",
-      "config_file": "simulations/ffr_rocof_mitigation.py",
-      "summary": "Simulate sub-second governor response and dynamic droop activation to arrest frequency decline and stabilize system nadir within 500 ms.",
-      "inputs": [
-        "Under-frequency trigger event (< 49.8 Hz)",
-        "BESS state-of-charge headroom"
+      "id": "module-3",
+      "title": "Identify interacting service constraints",
+      "objective": "Map a stressed balance to the native model that enforces multiple limits.",
+      "minutes": 18,
+      "steps": [
+        "Use 800 kW baseline demand, 300 kW PV, and an assumed 200 kW battery contribution.",
+        "Run the evening case and convert the battery power to MW.",
+        "Read grid_support_sequence.py and identify capability, filtering, ramping, temperature, and energy interactions omitted here."
       ],
-      "parameters": {
-        "ReactionTime_ms": 80.0,
-        "RampRate_MW_per_sec": 250.0,
-        "FullPowerHoldTime_sec": 15.0
+      "preset": {
+        "demandKW": 800,
+        "solarKW": 300,
+        "batteryKW": 200,
+        "carbonGPerKWh": 400
       },
       "checkpoints": [
-        "Ensure frequency remains above statutory disconnect limit (49.2 Hz)",
-        "Prevent over-discharge battery threshold breach"
-      ]
+        {
+          "label": "Stressed evening import is 680 kW",
+          "metric": "gridImportKW",
+          "operator": "==",
+          "expected": 680,
+          "tolerance": 0.02,
+          "atTime": 19
+        },
+        {
+          "label": "Stressed emissions rate is 272 kg/h",
+          "metric": "emissionsKgPerH",
+          "operator": "==",
+          "expected": 272,
+          "tolerance": 0.02,
+          "atTime": 19
+        }
+      ],
+      "reflection": "Why could active-priority and reactive-priority policies deliver different commands for the same requested P and Q?",
+      "source_paths": [
+        "models/grid_support_sequence.py",
+        "models/pq_capability.py",
+        "tests/test_grid_support_sequence.py"
+      ],
+      "level": "Stress test"
     },
     {
-      "id": "L04",
-      "title": "Weak-Grid High-Impedance Islanding & Black-Start Restoration",
-      "level": "Production",
-      "duration": "75 mins",
-      "config_file": "simulations/blackstart_grid_restoration.py",
-      "summary": "Step-by-step restoration of an unenergized transmission network: energizing transformer inrush without saturation trip, and stabilizing local load.",
-      "inputs": [
-        "Zero-voltage de-energized island network",
-        "Transformer magnetizing curve with remanent flux"
+      "id": "module-4",
+      "title": "Write a constrained dispatch study",
+      "objective": "Carry a clear power question into a sequence that can check physical limits.",
+      "minutes": 18,
+      "steps": [
+        "Apply 500 kW baseline demand, 600 kW PV, 300 kW assumed battery contribution, and 200 g/kWh carbon.",
+        "Run and export the requested balance, stating that storage feasibility is unresolved.",
+        "Specify a native study with initial/final SOC, duration, efficiencies, P–Q priority, ramp limits, and reserve requirements."
       ],
-      "parameters": {
-        "SoftStart_RampTime_sec": 3.0,
-        "InrushMitigation_FluxControl": true,
-        "TargetFrequency_Hz": 50.0
+      "preset": {
+        "demandKW": 500,
+        "solarKW": 600,
+        "batteryKW": 300,
+        "carbonGPerKWh": 200
       },
       "checkpoints": [
-        "Eliminate destructive harmonic resonance overvoltages",
-        "Establish stable 132 kV voltage backbone for subsequent generation restart"
-      ]
+        {
+          "label": "Requested evening import is 250 kW",
+          "metric": "gridImportKW",
+          "operator": "==",
+          "expected": 250,
+          "tolerance": 0.02,
+          "atTime": 19
+        },
+        {
+          "label": "Illustrative grid emissions rate is 50 kg/h",
+          "metric": "emissionsKgPerH",
+          "operator": "==",
+          "expected": 50,
+          "tolerance": 0.02,
+          "atTime": 19
+        }
+      ],
+      "reflection": "Which source tests could support implementation correctness, and what site or grid-code evidence would still be needed for an operational decision?",
+      "source_paths": [
+        "models/energy_sequence.py",
+        "models/grid_support_sequence.py",
+        "tests/test_energy_sequence.py"
+      ],
+      "level": "Transfer to source"
     }
-  ]
+  ],
+  "source": {
+    "commit": "24de0b792ecb4357b42be5bbe20183c1112b5702",
+    "audited_at": "2026-10-19T08:39:24Z",
+    "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/tree/24de0b792ecb4357b42be5bbe20183c1112b5702",
+    "calibration_status": "synthetic-analytical-fixtures",
+    "scope": "This browser lab is a standalone teaching approximation. Use the linked source for the project implementation."
+  },
+  "dashboard_url": "https://mohammadrezwankhan.github.io/smart-grid-storage-playbook/"
 }

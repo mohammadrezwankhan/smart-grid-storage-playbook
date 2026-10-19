@@ -1,5 +1,7 @@
 # Harmonic Performance Evidence
 
+![Section 04 · Verification / output](../docs/visuals/sections/section-04-verification.svg)
+
 Use this page for framing the evidence needed for harmonic performance and power quality review. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.
 
 | Review Area | Prompt | Evidence To Request |

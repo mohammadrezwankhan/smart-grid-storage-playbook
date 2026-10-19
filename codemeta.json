@@ -1,0 +1,29 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Smart Grid Storage Playbook",
+  "codeRepository": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook",
+  "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook",
+  "author": [
+    {
+      "@type": "Person",
+      "familyName": "Khan",
+      "givenName": "Mohammad Rezwan",
+      "@id": "https://orcid.org/0000-0002-1532-0598"
+    }
+  ],
+  "readme": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/HEAD/README.md",
+  "issueTracker": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/issues",
+  "continuousIntegration": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions",
+  "relatedLink": [
+    "https://rezwankhan.tech/",
+    "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/HEAD/CITATION.cff"
+  ],
+  "keywords": [
+    "smart grids",
+    "grid-forming",
+    "battery energy storage",
+    "power systems"
+  ],
+  "license": "https://spdx.org/licenses/MIT.html"
+}

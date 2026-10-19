@@ -1,5 +1,7 @@
 # System Operator Query Log
 
+![Section 01 · Question / topology](../docs/visuals/sections/section-01-question.svg)
+
 Use this page for tracking questions from system operators and the evidence used to answer them. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.
 
 | Review Area | Prompt | Evidence To Request |

@@ -13,6 +13,8 @@ Battery energy storage systems can support the grid in different control modes. 
 
 ## Engineering Evidence To Request
 
+![Section 04 · Verification / output](../docs/visuals/sections/section-04-verification.svg)
+
 - Control mode description.
 - Grid-code compliance statement.
 - Fault ride-through behavior.

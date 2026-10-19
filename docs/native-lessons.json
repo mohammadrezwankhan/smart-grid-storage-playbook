@@ -1,0 +1,980 @@
+{
+  "schema_version": 1,
+  "repository": {
+    "name": "smart-grid-storage-playbook",
+    "name_with_owner": "mohammadrezwankhan/smart-grid-storage-playbook",
+    "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook"
+  },
+  "native_source": {
+    "commit": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+    "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/tree/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+    "source_path_override": null
+  },
+  "browser_lab_package_provenance": {
+    "commit": "24de0b792ecb4357b42be5bbe20183c1112b5702",
+    "url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/tree/24de0b792ecb4357b42be5bbe20183c1112b5702",
+    "scope": "This browser lab is a standalone teaching approximation. Use the linked source for the project implementation.",
+    "calibration_status": "synthetic-analytical-fixtures",
+    "config_path": "docs/lesson-config.json"
+  },
+  "native_catalog_source": "Tracked Markdown in source lesson, example, study-case, concept, model, and documentation paths.",
+  "native_material_count": 29,
+  "reproduction_command_count": 1,
+  "materials": [
+    {
+      "id": "doc-77c8835297ab",
+      "title": "Inverter Mode Transition Checklist",
+      "path": "checklists/inverter-mode-transition-checklist.md",
+      "line": 1,
+      "source_paths": [
+        "checklists/inverter-mode-transition-checklist.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/checklists/inverter-mode-transition-checklist.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this checklist to review transitions between grid-following, grid-forming, standby, and fault states.",
+      "type": "Native reading",
+      "section": "question",
+      "tags": [
+        "native-reading"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-8ec9a00bfd09",
+      "title": "Smart Grid Storage Playbook",
+      "path": "README.md",
+      "line": 1,
+      "source_paths": [
+        "README.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/24de0b792ecb4357b42be5bbe20183c1112b5702/README.md#L1",
+      "source_revision": "24de0b792ecb4357b42be5bbe20183c1112b5702",
+      "source_kind": "historical-reconciled-readme",
+      "source_label": "Historical README/source guide at 24de0b792ecb",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Explainable smart-grid and grid-forming BESS concepts for engineers, students,",
+      "type": "Native overview",
+      "section": "question",
+      "tags": [
+        "native-reading"
+      ],
+      "track": null,
+      "lesson_id": null,
+      "source_blob_path": "README.md",
+      "source_blob_sha256": "f35f0f018041c19a7fe13e3e1fe3d8e78ec497558e12bbd0945b57922d9d70d6",
+      "source_blob_retrieval": "git-show",
+      "source_blob_cache": null
+    },
+    {
+      "id": "doc-e9bdda72ccef",
+      "title": "Weak-Grid Storage Review Checklist",
+      "path": "checklists/weak-grid-storage-review-checklist.md",
+      "line": 1,
+      "source_paths": [
+        "checklists/weak-grid-storage-review-checklist.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/checklists/weak-grid-storage-review-checklist.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this checklist when a BESS dispatch plan must operate in a weak-grid, constrained-grid, islanded, or low-short-circuit-strength context.",
+      "type": "Native reading",
+      "section": "question",
+      "tags": [
+        "native-reading"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-0c127c0afaf7",
+      "title": "Active Reactive Power Priority",
+      "path": "concepts/active-reactive-power-priority.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/active-reactive-power-priority.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/active-reactive-power-priority.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for explaining how active and reactive power commands should be",
+      "type": "Native reading",
+      "section": "equations",
+      "tags": [
+        "model",
+        "reproduction"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-bd51599f3e61",
+      "title": "Grid-Forming vs Grid-Following Storage",
+      "path": "concepts/grid-forming-vs-grid-following.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/grid-forming-vs-grid-following.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-vs-grid-following.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Battery energy storage systems can support the grid in different control modes. This note gives a compact distinction for project discussions.",
+      "type": "Native reading",
+      "section": "equations",
+      "tags": [
+        "model"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-ab32de75219b",
+      "title": "Storage Dispatch Basics",
+      "path": "concepts/storage-dispatch-basics.md",
+      "line": 3,
+      "source_paths": [
+        "concepts/storage-dispatch-basics.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/storage-dispatch-basics.md#L3",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Storage dispatch is the decision process for when a battery energy storage system charges, discharges, holds reserve, or stays idle.",
+      "type": "Native reading",
+      "section": "equations",
+      "tags": [
+        "model"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-0c3ccef89e14",
+      "title": "Active/Reactive Capability Reference",
+      "path": "models/README.md",
+      "line": 1,
+      "source_paths": [
+        "models/README.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/models/README.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "This dependency-free Python example makes constrained active/reactive power",
+      "type": "Native reading",
+      "section": "reproduce",
+      "tags": [
+        "model",
+        "native-lesson"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-7a33332588fa",
+      "title": "Grid Support Service Comparison",
+      "path": "concepts/grid-support-service-comparison.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/grid-support-service-comparison.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-support-service-comparison.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Battery storage can support the grid through several services. Use this comparison to align the service name, control question, and evidence request before making performance claims.",
+      "type": "Native reading",
+      "section": "verification",
+      "tags": [
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-ca28a2ebade4",
+      "title": "Grid-Code Evidence Prompt",
+      "path": "concepts/grid-code-evidence-prompt.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/grid-code-evidence-prompt.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-code-evidence-prompt.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this prompt to structure early BESS grid-code review discussions. It is jurisdiction-neutral and should be adapted to the applicable connection agreement, utility requirement, or grid-code document.",
+      "type": "Native reading",
+      "section": "verification",
+      "tags": [
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-489e81fda1f5",
+      "title": "Availability Performance Template",
+      "path": "concepts/availability-performance-template.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/availability-performance-template.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/availability-performance-template.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for capturing storage availability assumptions, exclusions, and supporting event evidence. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-de0b7a30be61",
+      "title": "Black Start Readiness Prompts",
+      "path": "concepts/black-start-readiness-prompts.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/black-start-readiness-prompts.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/black-start-readiness-prompts.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for framing evidence questions for storage-supported restoration and black-start discussions. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-c5875bbc8985",
+      "title": "Congestion Relief Dispatch Note",
+      "path": "concepts/congestion-relief-dispatch-note.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/congestion-relief-dispatch-note.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/congestion-relief-dispatch-note.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for describing how storage dispatch assumptions support congestion relief claims. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-f63db98ed02a",
+      "title": "Event Log Review Guide",
+      "path": "concepts/event-log-review-guide.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/event-log-review-guide.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/event-log-review-guide.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for reviewing storage controller and inverter event logs after grid-service tests. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-7311f178f555",
+      "title": "Grid Code Traceability Matrix",
+      "path": "concepts/grid-code-traceability-matrix.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/grid-code-traceability-matrix.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-code-traceability-matrix.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for linking grid-code clauses to evidence, owners, and unresolved questions. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-8f4d5d272b22",
+      "title": "Grid Forming Test Scenario Log",
+      "path": "concepts/grid-forming-test-scenario-log.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/grid-forming-test-scenario-log.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-test-scenario-log.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for tracking grid-forming test cases, pass criteria, and missing evidence. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-b34b15642f47",
+      "title": "Grid Service Evidence Checklist",
+      "path": "checklists/grid-service-evidence-checklist.md",
+      "line": 1,
+      "source_paths": [
+        "checklists/grid-service-evidence-checklist.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/checklists/grid-service-evidence-checklist.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this checklist to confirm that each proposed grid service has traceable settings, tests, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-26c1e9079ab5",
+      "title": "Harmonic Performance Evidence",
+      "path": "concepts/harmonic-performance-evidence.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/harmonic-performance-evidence.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/harmonic-performance-evidence.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for framing the evidence needed for harmonic performance and power quality review. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "model",
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-cf52c836745d",
+      "title": "Interconnection Review Questions",
+      "path": "concepts/interconnection-review-questions.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/interconnection-review-questions.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/interconnection-review-questions.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for turning grid interconnection requirements into reviewable engineering questions. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-c362ea929ffc",
+      "title": "Islanding Risk Review Checklist",
+      "path": "checklists/islanding-risk-review-checklist.md",
+      "line": 1,
+      "source_paths": [
+        "checklists/islanding-risk-review-checklist.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/checklists/islanding-risk-review-checklist.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for reviewing islanding risks, controls, protections, and operator actions for storage systems. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-8c71f6f8ddc3",
+      "title": "Market Service Assumption Register",
+      "path": "concepts/market-service-assumption-register.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/market-service-assumption-register.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/market-service-assumption-register.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for separating market-service assumptions from technical grid-service evidence. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-92411fabffed",
+      "title": "Microgrid Mode Transition Log",
+      "path": "concepts/microgrid-mode-transition-log.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/microgrid-mode-transition-log.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/microgrid-mode-transition-log.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for tracking mode transitions between grid-connected, islanded, and recovery operation. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-11dcd6c82104",
+      "title": "Operator Control Room Handover",
+      "path": "concepts/operator-control-room-handover.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/operator-control-room-handover.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/operator-control-room-handover.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for clarifying the monitoring, alarm, dispatch, and escalation details operators need. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-e14502c94b94",
+      "title": "Playbook Next Research Questions",
+      "path": "concepts/playbook-next-research-questions.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/playbook-next-research-questions.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/playbook-next-research-questions.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for capturing unanswered smart-grid storage questions for future source-backed expansion. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-8710f90bdb01",
+      "title": "Protection Coordination Review",
+      "path": "checklists/protection-coordination-review.md",
+      "line": 1,
+      "source_paths": [
+        "checklists/protection-coordination-review.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/checklists/protection-coordination-review.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for reviewing protection assumptions that affect storage interconnection and operating modes. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-3c06a3ebce47",
+      "title": "Renewable Smoothing Case Note",
+      "path": "concepts/renewable-smoothing-case-note.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/renewable-smoothing-case-note.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/renewable-smoothing-case-note.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for documenting dispatch assumptions for using storage to smooth renewable generation ramps. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-5de853fdecb2",
+      "title": "Resilience Use Case Template",
+      "path": "concepts/resilience-use-case-template.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/resilience-use-case-template.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/resilience-use-case-template.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for defining the load, outage, SOC, and recovery assumptions behind resilience claims. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-d45e887f5c16",
+      "title": "Service Stacking Conflict Log",
+      "path": "concepts/service-stacking-conflict-log.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/service-stacking-conflict-log.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/service-stacking-conflict-log.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for recording conflicts when multiple grid services compete for storage capability. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-5e12aa542f34",
+      "title": "Storage Dispatch Priority Matrix",
+      "path": "concepts/storage-dispatch-priority-matrix.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/storage-dispatch-priority-matrix.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/storage-dispatch-priority-matrix.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for ordering control objectives when storage services compete for the same power or energy headroom. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "model",
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    },
+    {
+      "id": "doc-ec59e8d642ea",
+      "title": "System Operator Query Log",
+      "path": "concepts/system-operator-query-log.md",
+      "line": 1,
+      "source_paths": [
+        "concepts/system-operator-query-log.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/system-operator-query-log.md#L1",
+      "source_revision": "92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac",
+      "source_kind": "audited-native-source",
+      "source_label": "Source at 92a0b4ea1d5c",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Use this page for tracking questions from system operators and the evidence used to answer them. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.",
+      "type": "Native reading",
+      "section": "scope",
+      "tags": [
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null
+    }
+  ],
+  "commands": [
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "label": "Source-defined validation command",
+      "path": ".github/workflows/markdown-maintenance.yml",
+      "line": 39,
+      "source_url": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/.github/workflows/markdown-maintenance.yml#L39"
+    }
+  ],
+  "engineering_curriculum_exclusions": [],
+  "visuals": {
+    "mapped_diagrams": [
+      {
+        "path": "diagrams/grid-forming-inverter.svg",
+        "fidelity": "Reduced-order conceptual inverter path; not a validated hardware or grid-code design."
+      }
+    ],
+    "section_banners": [
+      "section-01-question.svg",
+      "section-02-equations.svg",
+      "section-03-reproduce.svg",
+      "section-04-verification.svg",
+      "section-05-scope.svg"
+    ]
+  },
+  "native_document_banner_insertions": [
+    {
+      "path": "concepts/grid-forming-vs-grid-following.md",
+      "section": "verification",
+      "section_title": "Verification / output",
+      "banner": "docs/visuals/sections/section-04-verification.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+      "insert_after_heading": "Engineering Evidence To Request",
+      "heading_line": 14,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-vs-grid-following.md#L14",
+      "reason": "The existing heading 'Engineering Evidence To Request' matches the verification / output section."
+    },
+    {
+      "path": "concepts/storage-dispatch-basics.md",
+      "section": "reproduce",
+      "section_title": "Reproduce / parameters",
+      "banner": "docs/visuals/sections/section-03-reproduce.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-03-reproduce.svg",
+      "insert_after_heading": "Example Dispatch Modes",
+      "heading_line": 30,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/storage-dispatch-basics.md#L30",
+      "reason": "The existing heading 'Example Dispatch Modes' matches the reproduce / parameters section."
+    },
+    {
+      "path": "concepts/grid-code-evidence-prompt.md",
+      "section": "verification",
+      "section_title": "Verification / output",
+      "banner": "docs/visuals/sections/section-04-verification.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+      "insert_after_heading": "Grid-Code Evidence Prompt",
+      "heading_line": 1,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-code-evidence-prompt.md#L1",
+      "reason": "The existing heading 'Grid-Code Evidence Prompt' matches the verification / output section."
+    },
+    {
+      "path": "concepts/grid-forming-test-scenario-log.md",
+      "section": "verification",
+      "section_title": "Verification / output",
+      "banner": "docs/visuals/sections/section-04-verification.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+      "insert_after_heading": "Grid Forming Test Scenario Log",
+      "heading_line": 1,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-test-scenario-log.md#L1",
+      "reason": "The existing heading 'Grid Forming Test Scenario Log' matches the verification / output section."
+    },
+    {
+      "path": "concepts/harmonic-performance-evidence.md",
+      "section": "verification",
+      "section_title": "Verification / output",
+      "banner": "docs/visuals/sections/section-04-verification.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+      "insert_after_heading": "Harmonic Performance Evidence",
+      "heading_line": 1,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/harmonic-performance-evidence.md#L1",
+      "reason": "The existing heading 'Harmonic Performance Evidence' matches the verification / output section."
+    },
+    {
+      "path": "concepts/market-service-assumption-register.md",
+      "section": "equations",
+      "section_title": "Equations / provenance",
+      "banner": "docs/visuals/sections/section-02-equations.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-02-equations.svg",
+      "insert_after_heading": "Market Service Assumption Register",
+      "heading_line": 1,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/market-service-assumption-register.md#L1",
+      "reason": "The existing heading 'Market Service Assumption Register' matches the equations / provenance section."
+    },
+    {
+      "path": "concepts/system-operator-query-log.md",
+      "section": "question",
+      "section_title": "Question / topology",
+      "banner": "docs/visuals/sections/section-01-question.svg",
+      "markdown_relative_banner": "../docs/visuals/sections/section-01-question.svg",
+      "insert_after_heading": "System Operator Query Log",
+      "heading_line": 1,
+      "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/system-operator-query-log.md#L1",
+      "reason": "The existing heading 'System Operator Query Log' matches the question / topology section."
+    }
+  ],
+  "native_document_banner_audit": {
+    "schema_version": 1,
+    "eligibility_rule": "Tracked indexed Markdown in an examples, tutorials, lessons, studies, study-cases, concepts or notes directory, or whose path/title explicitly names a lesson, tutorial, example, walkthrough, study case or study. Banners are based only on existing semantic heading text, never directory names.",
+    "eligible_document_count": 22,
+    "lesson_document_candidates": 22,
+    "modified_document_count": 7,
+    "banner_insertion_count": 7,
+    "audit_gap_count": 15,
+    "banners": [
+      {
+        "path": "concepts/grid-forming-vs-grid-following.md",
+        "section": "verification",
+        "section_title": "Verification / output",
+        "banner": "docs/visuals/sections/section-04-verification.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+        "insert_after_heading": "Engineering Evidence To Request",
+        "heading_line": 14,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-vs-grid-following.md#L14",
+        "reason": "The existing heading 'Engineering Evidence To Request' matches the verification / output section."
+      },
+      {
+        "path": "concepts/storage-dispatch-basics.md",
+        "section": "reproduce",
+        "section_title": "Reproduce / parameters",
+        "banner": "docs/visuals/sections/section-03-reproduce.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-03-reproduce.svg",
+        "insert_after_heading": "Example Dispatch Modes",
+        "heading_line": 30,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/storage-dispatch-basics.md#L30",
+        "reason": "The existing heading 'Example Dispatch Modes' matches the reproduce / parameters section."
+      },
+      {
+        "path": "concepts/grid-code-evidence-prompt.md",
+        "section": "verification",
+        "section_title": "Verification / output",
+        "banner": "docs/visuals/sections/section-04-verification.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+        "insert_after_heading": "Grid-Code Evidence Prompt",
+        "heading_line": 1,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-code-evidence-prompt.md#L1",
+        "reason": "The existing heading 'Grid-Code Evidence Prompt' matches the verification / output section."
+      },
+      {
+        "path": "concepts/grid-forming-test-scenario-log.md",
+        "section": "verification",
+        "section_title": "Verification / output",
+        "banner": "docs/visuals/sections/section-04-verification.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+        "insert_after_heading": "Grid Forming Test Scenario Log",
+        "heading_line": 1,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/grid-forming-test-scenario-log.md#L1",
+        "reason": "The existing heading 'Grid Forming Test Scenario Log' matches the verification / output section."
+      },
+      {
+        "path": "concepts/harmonic-performance-evidence.md",
+        "section": "verification",
+        "section_title": "Verification / output",
+        "banner": "docs/visuals/sections/section-04-verification.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-04-verification.svg",
+        "insert_after_heading": "Harmonic Performance Evidence",
+        "heading_line": 1,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/harmonic-performance-evidence.md#L1",
+        "reason": "The existing heading 'Harmonic Performance Evidence' matches the verification / output section."
+      },
+      {
+        "path": "concepts/market-service-assumption-register.md",
+        "section": "equations",
+        "section_title": "Equations / provenance",
+        "banner": "docs/visuals/sections/section-02-equations.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-02-equations.svg",
+        "insert_after_heading": "Market Service Assumption Register",
+        "heading_line": 1,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/market-service-assumption-register.md#L1",
+        "reason": "The existing heading 'Market Service Assumption Register' matches the equations / provenance section."
+      },
+      {
+        "path": "concepts/system-operator-query-log.md",
+        "section": "question",
+        "section_title": "Question / topology",
+        "banner": "docs/visuals/sections/section-01-question.svg",
+        "markdown_relative_banner": "../docs/visuals/sections/section-01-question.svg",
+        "insert_after_heading": "System Operator Query Log",
+        "heading_line": 1,
+        "source_link": "https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/blob/92a0b4ea1d5c4c30bbc7869f7914751c1e96a0ac/concepts/system-operator-query-log.md#L1",
+        "reason": "The existing heading 'System Operator Query Log' matches the question / topology section."
+      }
+    ],
+    "audit_gaps": [
+      {
+        "path": "concepts/active-reactive-power-priority.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/grid-support-service-comparison.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/availability-performance-template.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/black-start-readiness-prompts.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/congestion-relief-dispatch-note.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/event-log-review-guide.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/grid-code-traceability-matrix.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/interconnection-review-questions.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/microgrid-mode-transition-log.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/operator-control-room-handover.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/playbook-next-research-questions.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/renewable-smoothing-case-note.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/resilience-use-case-template.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/service-stacking-conflict-log.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      },
+      {
+        "path": "concepts/storage-dispatch-priority-matrix.md",
+        "reason": "no existing heading matches a five-color section; retained as a source-linked catalog entry"
+      }
+    ],
+    "explicit_exclusions": []
+  },
+  "dashboard": {
+    "browser_lab_is_surrogate": true,
+    "native_execution_in_browser": false,
+    "localStorage_or_existing_dashboard_scripts_preserved": true
+  }
+}

@@ -1,5 +1,7 @@
 # Grid-Code Evidence Prompt
 
+![Section 04 · Verification / output](../docs/visuals/sections/section-04-verification.svg)
+
 Use this prompt to structure early BESS grid-code review discussions. It is jurisdiction-neutral and should be adapted to the applicable connection agreement, utility requirement, or grid-code document.
 
 ## Evidence Prompt

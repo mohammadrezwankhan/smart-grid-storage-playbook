@@ -1,5 +1,7 @@
 # Market Service Assumption Register
 
+![Section 02 · Equations / provenance](../docs/visuals/sections/section-02-equations.svg)
+
 Use this page for separating market-service assumptions from technical grid-service evidence. It keeps smart-grid storage discussions tied to service intent, control behavior, evidence, and operating limits.
 
 | Review Area | Prompt | Evidence To Request |

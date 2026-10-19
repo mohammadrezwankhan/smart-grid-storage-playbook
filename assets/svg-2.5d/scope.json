@@ -1,0 +1,10 @@
+{
+  "repository": "smart-grid-storage-playbook",
+  "diagrams": [
+    "diagrams/grid-forming-inverter.svg"
+  ],
+  "fidelity": {
+    "diagrams/grid-forming-inverter.svg": "Reduced-order conceptual inverter path; not a validated hardware or grid-code design."
+  },
+  "reason": "Reduced-order grid-forming converter path, aligned with the inverter/playbook scope."
+}

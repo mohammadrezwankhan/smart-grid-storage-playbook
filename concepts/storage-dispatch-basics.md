@@ -29,6 +29,8 @@ A BESS is constrained by both power and energy:
 
 ## Example Dispatch Modes
 
+![Section 03 · Reproduce / parameters](../docs/visuals/sections/section-03-reproduce.svg)
+
 | Mode | Typical Goal | Review Question |
 |---|---|---|
 | Peak shaving | Reduce site or grid peak demand | What measurement point defines the peak? |

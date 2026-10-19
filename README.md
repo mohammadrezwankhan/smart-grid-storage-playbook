@@ -1,175 +1,310 @@
-<div align="center">
+![Smart Grid Storage Constraints Lab: original vector system illustration](assets/hero-25d.svg)
 
-<img src="assets/hero-25d.svg" alt="Smart Grid & Grid-Forming Storage Playbook 2.5D Architecture" width="100%">
+The playbook pairs concept notes with executable storage and grid-support constraints. The browser begins with active-power balance before directing the learner to native energy, P–Q, ramp, reserve, and derating models.
 
-# Smart Grid & Grid-Forming Storage Playbook
+**[Native-source lesson guide](docs/portfolio/) · [Offline interactive lab](docs/index.html) · [Lesson configuration](docs/lesson-config.json) · [Configuration schema](docs/lesson-config.schema.json)**
 
-**Grid-Forming Inverters, Synthetic Inertia & High-Renewable System Stability**
+## Your first interactive result
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-00E5FF.svg?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
-[![Interactive Dashboard](https://img.shields.io/badge/Interactive_Dashboard-Live_on_Pages-00E676.svg?style=for-the-badge&logo=githubpages&logoColor=white)](https://mohammadrezwankhan.github.io/smart-grid-storage-playbook/)
-[![Lessons](https://img.shields.io/badge/Lessons_Configured-04_Modules-B388FF.svg?style=for-the-badge)](docs/lesson-config.json)
+1. Download or clone this repository and open `docs/index.html` in a modern browser.
+2. Select **Module 1**, apply its preset, and compare the declared checkpoint with the plotted result.
+3. Change one slider, inspect the model assumptions, then export the configuration or telemetry for your notes.
 
-<p align="center">
-  <a href="https://mohammadrezwankhan.github.io/smart-grid-storage-playbook/"><strong>Explore Live 2.5D Dashboard &rarr;</strong></a> ·
-  <a href="#quickstart">Quickstart</a> ·
-  <a href="#lesson-configuration-matrix">Lesson Labs</a> ·
-  <a href="#verification-benchmarks">Benchmarks</a> ·
-  <a href="#citation">Citation</a>
-</p>
+The browser lab runs offline with no packages, accounts, or live data feeds. Its numbers are deterministic teaching simulations. Each checkpoint states its model time and tolerance; passing it demonstrates agreement with that model, not field calibration or production readiness.
 
-</div>
-
----
-
-> [!NOTE]
-> **Industrial & Educational Benchmark:** This repository serves as a flagship, peer-reviewed engineering asset developed by **[Mohammad Rezwan Khan](https://github.com/mohammadrezwankhan)**. All models, simulation scripts, and laboratory configurations are strictly audited for numerical convergence, reproducibility, and industrial standard compliance.
-
-> [!TIP]
-> **Interactive 2.5D Dashboard:** Visit the companion interactive dashboard hosted directly on GitHub Pages at **[https://mohammadrezwankhan.github.io/smart-grid-storage-playbook/](https://mohammadrezwankhan.github.io/smart-grid-storage-playbook/)** to adjust excitation parameters, test live frequency/thermal waveforms, and inspect progressive lab modules in real time.
-
----
-
-## 🏛️ System Architecture & 2.5D Visual Topology
-
-The repository is structured across three decoupled layers visually depicted in our 2.5D isometric platform:
-
-1. **Layer 01: Physical & Hardware Boundary Layer**
-   - Encapsulates electrochemical, thermal, and circuit hardware properties (cell chemistry, internal impedance, cooling cold-plate hydraulic dimensions, and transformer ratings).
-2. **Layer 02: Computational & Digital Twin Core**
-   - Solves coupled nonlinear differential equations, Kalman filtering state estimation, and model predictive control optimization algorithms with guaranteed mathematical boundedness.
-3. **Layer 03: Telemetry, Dispatch & Interactive API Layer**
-   - Exposes zero-friction CLI runners, interactive web dashboards, automated GitHub Actions regression verification suites, and production JSON configuration manifests.
-
-```
-       ▲  [LAYER 03: TELEMETRY & DISPATCH]   --> Web Dashboard, REST API, Automated CI
-      / \
-     ▲   ▲ [LAYER 02: NUMERICAL CORE]        --> Differential Solvers, EKF, Optimization
-    / \ / \
-   ▲   ▲   ▲ [LAYER 01: HARDWARE BOUNDS]     --> Equivalent Circuit, Thermal Mesh, Grid POI
-```
-
----
-
-## 🚀 Quickstart
-
-Run the full reproduction test suite locally with zero manual setup:
-
-```bash
-# Clone the repository
-git clone https://github.com/mohammadrezwankhan/smart-grid-storage-playbook.git
-cd smart-grid-storage-playbook
-
-# Option A: Python Environment
-pip install -r requirements.txt
-python -m unittest discover -s tests -p "*_test.py"
-
-# Option B: Launch Local 2.5D Interactive Dashboard
-cd docs && python -m http.server 8080
-# Open http://localhost:8080 in your browser
-```
-
----
-
-## 📚 Lesson Configuration Matrix
-
-This repository includes a progressive 4-part industrial lab curriculum. Each lesson provides self-contained parameters, test scripts, and automated telemetry checkpoints stored in [`docs/lesson-config.json`](docs/lesson-config.json).
-
-| Lesson ID | Level | Duration | Module Target | Core Objective |
-| :--- | :--- | :--- | :--- | :--- |
-| **`L01`** | `Beginner` | `30 mins` | `simulations/gfm_vs_gfl_theory.py` | Grid-Forming (GFM) vs. Grid-Following (GFL) Fundamental Principles |
-| **`L02`** | `Intermediate` | `45 mins` | `simulations/vsm_swing_equation.py` | Virtual Synchronous Machine (VSM) Swing Equation & Inertia Emulation |
-| **`L03`** | `Advanced` | `60 mins` | `simulations/ffr_rocof_mitigation.py` | Fast Frequency Response (FFR) & RoCoF Mitigation under Contingency |
-| **`L04`** | `Production` | `75 mins` | `simulations/blackstart_grid_restoration.py` | Weak-Grid High-Impedance Islanding & Black-Start Restoration |
-
+<!-- source-mapped-visuals:start -->
 
 <details>
-<summary><strong>🔍 Click to expand detailed lesson specifications</strong></summary>
+<summary>System topology and model boundaries</summary>
 
-### L01: Grid-Forming (GFM) vs. Grid-Following (GFL) Fundamental Principles
-- **Complexity Level:** `Beginner` | **Estimated Time:** `30 mins`
-- **Target File:** `simulations/gfm_vs_gfl_theory.py`
-- **Objective:** Understand voltage-source vs. current-source inverter control paradigms and analyze why PLL-based GFL inverters lose synchronism in weak grids (SCR < 1.5).
-- **Key Inputs:** Variable short-circuit ratio (SCR) grid model, Phase angle perturbation step
-- **Calibrated Parameters:** `{"GridSCR": 1.2, "PLL_Bandwidth_Hz": 25.0, "VoltageSourceVoltage_pu": 1.0}`
-- **Verification Criteria:**
-  - [x] Observe GFL inverter instability under weak grid conditions
-  - [x] Verify GFM inverter self-synchronizing stability
+![Grid forming inverter](assets/svg-2.5d/diagrams/grid-forming-inverter.svg)
 
-### L02: Virtual Synchronous Machine (VSM) Swing Equation & Inertia Emulation
-- **Complexity Level:** `Intermediate` | **Estimated Time:** `45 mins`
-- **Target File:** `simulations/vsm_swing_equation.py`
-- **Objective:** Implement virtual rotor inertia J and damping coefficient D in software to emulate synchronous generator electromechanical dynamics.
-- **Key Inputs:** Sudden 500 MW loss-of-generation contingency, System base frequency 50 Hz
-- **Calibrated Parameters:** `{"InertiaConstant_H_sec": 5.0, "DampingFactor_D_pu": 20.0, "InverterRating_MVA": 100.0}`
-- **Verification Criteria:**
-  - [x] Measure Rate of Change of Frequency (RoCoF) dampening
-  - [x] Observe smooth natural power injection without communication delays
+Reduced-order conceptual inverter path; not a validated hardware or grid-code design.
 
-### L03: Fast Frequency Response (FFR) & RoCoF Mitigation under Contingency
-- **Complexity Level:** `Advanced` | **Estimated Time:** `60 mins`
-- **Target File:** `simulations/ffr_rocof_mitigation.py`
-- **Objective:** Simulate sub-second governor response and dynamic droop activation to arrest frequency decline and stabilize system nadir within 500 ms.
-- **Key Inputs:** Under-frequency trigger event (< 49.8 Hz), BESS state-of-charge headroom
-- **Calibrated Parameters:** `{"ReactionTime_ms": 80.0, "RampRate_MW_per_sec": 250.0, "FullPowerHoldTime_sec": 15.0}`
-- **Verification Criteria:**
-  - [x] Ensure frequency remains above statutory disconnect limit (49.2 Hz)
-  - [x] Prevent over-discharge battery threshold breach
-
-### L04: Weak-Grid High-Impedance Islanding & Black-Start Restoration
-- **Complexity Level:** `Production` | **Estimated Time:** `75 mins`
-- **Target File:** `simulations/blackstart_grid_restoration.py`
-- **Objective:** Step-by-step restoration of an unenergized transmission network: energizing transformer inrush without saturation trip, and stabilizing local load.
-- **Key Inputs:** Zero-voltage de-energized island network, Transformer magnetizing curve with remanent flux
-- **Calibrated Parameters:** `{"SoftStart_RampTime_sec": 3.0, "InrushMitigation_FluxControl": true, "TargetFrequency_Hz": 50.0}`
-- **Verification Criteria:**
-  - [x] Eliminate destructive harmonic resonance overvoltages
-  - [x] Establish stable 132 kV voltage backbone for subsequent generation restart
+Motion is optional; the vector topology remains readable with reduced motion enabled.
 
 </details>
 
----
+<!-- source-mapped-visuals:end -->
 
-## 📊 Verification Benchmarks
+## Four-module learning path
 
-| Metric Benchmark | Reference Baseline | Proposed Framework | Improvement | Verification Status |
-| :--- | :--- | :--- | :--- | :--- |
-| Estimation Error (RMSE) | 3.85% | **0.94%** | **-75.5% Error** | Passed CI Automated Suite |
-| Computational Runtime | 142 ms / step | **18 ms / step** | **7.8x Speedup** | Benchmarked on standard x86 |
-| Memory Footprint | 480 MB | **64 MB** | **-86.6% RAM** | Profiled via memory profiler |
-| Numerical Stability Margin | Divergence @ 10 kHz | **Stable to 100 kHz** | **10x Stability Window** | 100,000 Step Monte Carlo Run |
+| Module | Investigation | Approximate time |
+|---|---|---:|
+| 1. Draw the requested active-power balance | Identify a grid-service request before applying feasibility constraints. | 12 min |
+| 2. Keep power and energy headroom separate | Explain why a lower import value does not prove sustained reserve availability. | 15 min |
+| 3. Identify interacting service constraints | Map a stressed balance to the native model that enforces multiple limits. | 18 min |
+| 4. Write a constrained dispatch study | Carry a clear power question into a sequence that can check physical limits. | 18 min |
 
----
+**Who this is for:** Power-system students, BESS engineers, and project teams reviewing grid-service assumptions.
 
-## 📜 Citation
+### Continue into the implementation
 
-If you use this repository, its models, or the accompanying interactive 2.5D curriculum in academic or industrial research, please cite:
+- [README.md](README.md)
+- [models/README.md](models/README.md)
+- [models/pq_capability.py](models/pq_capability.py)
+- [models/energy_limits.py](models/energy_limits.py)
+- [models/energy_sequence.py](models/energy_sequence.py)
+- [models/grid_support_sequence.py](models/grid_support_sequence.py)
+- [models/reserve_headroom.py](models/reserve_headroom.py)
 
-```bibtex
-@software{khan_smart_grid_storage_playbook,
-  author       = {Mohammad Rezwan Khan},
-  title        = {{Smart Grid & Grid-Forming Storage Playbook: Grid-Forming Inverters, Synthetic Inertia & High-Renewable System Stability}},
-  year         = {2026},
-  publisher    = {GitHub},
-  journal      = {GitHub Repository},
-  howpublished = {\url{https://github.com/mohammadrezwankhan/smart-grid-storage-playbook}}
-}
+### Explore or run the source
+
+Python 3.12 for the documented CI/reference path; models use only the standard library.
+
+```bash
+python models/pq_capability.py --active-mw 80 --reactive-mvar 80 --limit-mva 100 --priority active
+python models/energy_limits.py --active-mw 100 --duration-minutes 60 --energy-capacity-mwh 50 --initial-soc 0.50 --minimum-soc 0.20 --discharge-efficiency 0.90
+python -m unittest discover -s tests -v
 ```
 
----
+These commands come from the audited source revision. Runtime requirements and the project's own validation limits are documented below; the standalone browser lab does not execute these commands.
 
-## ⭐ Star History
+The detailed project guide below remains the source for installation, supported features, licences, and scientific limits. The browser equations and laboratory settings do not change the original application or numerical engine.
 
-Join our growing community of engineers, researchers, and developers pushing open-source energy storage and computational modeling forward:
+<details>
+<summary>Project documentation, installation, attribution, and existing validation</summary>
 
-<div align="center">
-  <a href="https://star-history.com/#mohammadrezwankhan/smart-grid-storage-playbook&Date">
-    <img src="https://api.star-history.com/svg?repos=mohammadrezwankhan/smart-grid-storage-playbook&type=Date" alt="Star History Chart" width="80%">
-  </a>
-</div>
+# Smart Grid Storage Playbook
 
----
+[![Model and Markdown validation](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml/badge.svg)](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/actions/workflows/markdown-maintenance.yml)
 
-<p align="center">
-  Distributed under the MIT License. Built with pride by <a href="https://github.com/mohammadrezwankhan"><strong>Mohammad Rezwan Khan</strong></a>.
-</p>
+Explainable smart-grid and grid-forming BESS concepts for engineers, students,
+and project teams.
+
+## Documentation Map
+
+- [What this covers](#what-this-covers) sets the intended audience and domain.
+- [Starter pages](#starter-pages) is the concept and checklist reading path.
+- [Executable reference](#run-the-executable-reference) runs the dependency-free models.
+- [Model assumptions and limitations](models/README.md) defines the interpretation boundary.
+- [Contribution entry points](#contribution-entry-points) and [citation metadata](CITATION.cff) support shared work.
+
+## What This Covers
+
+- Grid-following vs grid-forming storage.
+- Storage dispatch concepts.
+- Resilience and reliability framing.
+- Renewable integration scenarios.
+- Technical diagrams and plain-English explainers.
+
+## Starter Pages
+
+- [Executable active/reactive capability reference](models/README.md)
+- [Executable Volt-VAR dispatch reference](models/README.md#volt-var-dispatch-reference)
+- [Executable frequency-watt dispatch reference](models/README.md#frequency-watt-dispatch-reference)
+- [Executable frequency measurement filter](models/README.md#frequency-measurement-filter)
+- [Executable active-power ramp limits](models/README.md#active-power-ramp-limits)
+- [Executable external temperature power derating](models/README.md#external-temperature-power-derating)
+- [Executable SOC and response-duration limits](models/README.md#soc-and-response-duration-limits)
+- [Executable multi-interval energy trajectory](models/README.md#multi-interval-energy-trajectory)
+- [Executable multi-service grid-support sequence](models/README.md#multi-service-grid-support-sequence)
+
+- [Grid-forming vs grid-following storage](concepts/grid-forming-vs-grid-following.md)
+- [Grid-code evidence prompt](concepts/grid-code-evidence-prompt.md)
+- [Storage dispatch basics](concepts/storage-dispatch-basics.md)
+- [Weak-grid storage review checklist](checklists/weak-grid-storage-review-checklist.md)
+- [Inverter mode transition checklist](checklists/inverter-mode-transition-checklist.md)
+- [Storage glossary](glossary/storage-glossary.md)
+- [BESS control flow](diagrams/bess-control-flow.md)
+- [Grid support service comparison](concepts/grid-support-service-comparison.md)
+- [Grid service evidence checklist](checklists/grid-service-evidence-checklist.md)
+
+- [Storage Dispatch Priority Matrix](concepts/storage-dispatch-priority-matrix.md)
+
+- [Interconnection Review Questions](concepts/interconnection-review-questions.md)
+
+- [Grid Forming Test Scenario Log](concepts/grid-forming-test-scenario-log.md)
+
+- [Resilience Use Case Template](concepts/resilience-use-case-template.md)
+
+- [Renewable Smoothing Case Note](concepts/renewable-smoothing-case-note.md)
+
+- [Active Reactive Power Priority](concepts/active-reactive-power-priority.md)
+
+- [Protection Coordination Review](checklists/protection-coordination-review.md)
+
+- [Black Start Readiness Prompts](concepts/black-start-readiness-prompts.md)
+
+- [Microgrid Mode Transition Log](concepts/microgrid-mode-transition-log.md)
+
+- [Grid Code Traceability Matrix](concepts/grid-code-traceability-matrix.md)
+
+- [Operator Control Room Handover](concepts/operator-control-room-handover.md)
+
+- [Event Log Review Guide](concepts/event-log-review-guide.md)
+
+- [Congestion Relief Dispatch Note](concepts/congestion-relief-dispatch-note.md)
+
+- [Market Service Assumption Register](concepts/market-service-assumption-register.md)
+
+- [Islanding Risk Review Checklist](checklists/islanding-risk-review-checklist.md)
+
+- [Harmonic Performance Evidence](concepts/harmonic-performance-evidence.md)
+
+- [Availability Performance Template](concepts/availability-performance-template.md)
+
+- [Service Stacking Conflict Log](concepts/service-stacking-conflict-log.md)
+
+- [System Operator Query Log](concepts/system-operator-query-log.md)
+
+- [Playbook Next Research Questions](concepts/playbook-next-research-questions.md)
+
+## Repository Topics
+
+```text
+smart-grid grid-forming energy-storage renewable-integration
+power-systems bess technical-writing
+```
+
+## Planned Sections
+
+```text
+concepts/
+checklists/
+diagrams/
+case-notes/
+glossary/
+README.md
+CONTRIBUTING.md
+CITATION.cff
+LICENSE
+```
+
+## Run The Executable Reference
+
+The dependency-free allocator demonstrates active-priority, reactive-priority,
+and proportional handling of commands outside a circular MVA limit, symmetric
+sampled curve, or directional four-quadrant P-Q envelope:
+
+```powershell
+python models/pq_capability.py `
+  --active-mw 80 --reactive-mvar 80 --limit-mva 100 --priority active
+python models/pq_capability.py `
+  --active-mw 80 --reactive-mvar 80 `
+  --curve-csv models/data/illustrative_capability_curve.csv --priority active
+python models/pq_capability.py `
+  --active-mw -65 --reactive-mvar -70 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv --priority active
+python models/volt_var.py `
+  --voltage-pu 0.95 --active-mw 90 --limit-mva 100
+python models/frequency_watt.py `
+  --frequency-hz 49.725 --baseline-active-mw 20 `
+  --reactive-mvar 80 --limit-mva 100
+python models/measurement_filter.py `
+  --input-value 49.5 --previous-output-value 50 `
+  --interval-seconds 0.1 --time-constant-seconds 1
+python models/ramp_limits.py `
+  --active-mw 80 --previous-active-mw 20 --interval-seconds 30 `
+  --ramp-up-mw-per-minute 40 --ramp-down-mw-per-minute 60
+python models/temperature_derating.py `
+  --active-mw -90 --temperature-c 40 `
+  --max-discharge-mw 80 --max-charge-mw 100 `
+  --curve-csv models/data/illustrative_temperature_derating.csv
+python models/energy_limits.py `
+  --active-mw 100 --duration-minutes 60 `
+  --energy-capacity-mwh 50 --initial-soc 0.50 `
+  --minimum-soc 0.20 --discharge-efficiency 0.90
+python models/energy_limits.py `
+  --active-mw 0 --duration-minutes 120 `
+  --energy-capacity-mwh 100 --initial-soc 0.80 `
+  --auxiliary-load-mw 2 --self-discharge-rate-per-hour 0.01
+python models/energy_sequence.py `
+  --active-mw-profile 50,50,50,-40 `
+  --duration-minutes-profile 15,15,15,30 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --charge-efficiency 0.80 `
+  --discharge-efficiency 1.00
+python models/reserve_headroom.py `
+  --baseline-active-mw 10 --duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 100 --initial-soc 0.50 `
+  --minimum-soc 0.20 --maximum-soc 0.80 `
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --reactive-mvar 80 --limit-mva 100
+python models/reserve_sequence.py `
+  --baseline-active-mw-profile 20,20,20 `
+  --interval-duration-minutes-profile 30,30,30 `
+  --response-duration-minutes 30 `
+  --maximum-discharge-mw 100 --maximum-charge-mw 100 `
+  --energy-capacity-mwh 100 --initial-soc 0.80 `
+  --minimum-soc 0.20 --maximum-soc 0.90 `
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --reactive-mvar 80 --limit-mva 100
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 50,49.5,50.5 `
+  --voltage-pu-profile 1,0.92,1.08 `
+  --baseline-active-mw-profile 20,20,20 `
+  --duration-minutes-profile 15,15,15 `
+  --limit-mva 100 --energy-capacity-mwh 100 `
+  --initial-soc 0.50 --minimum-soc 0.20 `
+  --charge-efficiency 1 --discharge-efficiency 1
+python models/grid_support_sequence.py `
+  --frequency-hz-profile 49.5,49.5,50.5,50.5 `
+  --voltage-pu-profile 0.95,1.05,0.95,1.05 `
+  --duration-minutes-profile 1,1,1,1 `
+  --directional-curve-csv `
+    models/data/illustrative_directional_capability.csv `
+  --energy-capacity-mwh 1000 --initial-soc 0.50 `
+  --charge-efficiency 1 --discharge-efficiency 1 `
+  --priority reactive
+python -m unittest discover -s tests -v
+```
+
+Review the [model assumptions and limitations](models/README.md) before mapping
+the result to a plant controller, PCS capability curve, grid-code study, or
+battery warranty. The multi-interval energy reference reports separate AC and
+stored-energy throughput, conversion loss, and throughput-equivalent full
+cycles without claiming a degradation model.
+
+## Scope and Limitations
+
+This playbook is educational and a reference implementation, not a grid-code
+compliance determination, protection-setting approval, plant-controller
+specification, or battery-warranty assessment. The executable models use
+explicit assumptions and illustrative inputs; replace them with project data,
+validated equipment limits, applicable standards, and independent engineering
+review before using the results in a design or operational decision.
+
+## Contribution Entry Points
+
+- Add a storage dispatch concept page.
+- Improve weak-grid review prompts with project examples.
+- Add project-specific examples to the grid-code evidence prompt.
+- Improve the BESS control-flow diagram notes.
+- Add project-specific inverter mode transition examples.
+- Add project-specific grid support service examples.
+- Add project-specific examples to the grid service evidence checklist.
+- Add project-specific examples to the storage dispatch priority matrix.
+- Add project-specific examples to the interconnection review questions.
+- Add project-specific examples to the grid forming test scenario log.
+- Add project-specific examples to the resilience use case template.
+- Add project-specific examples to the renewable smoothing case note.
+- Add project-specific examples to the active reactive power priority.
+- Add project-specific examples to the protection coordination review.
+- Add project-specific examples to the black start readiness prompts.
+- Add project-specific examples to the microgrid mode transition log.
+- Add project-specific examples to the grid code traceability matrix.
+- Add project-specific examples to the operator control room handover.
+- Add project-specific examples to the event log review guide.
+- Add project-specific examples to the congestion relief dispatch note.
+- Add project-specific examples to the market service assumption register.
+- Add project-specific examples to the islanding risk review checklist.
+- Add project-specific examples to the harmonic performance evidence.
+- Add project-specific examples to the availability performance template.
+- Add project-specific examples to the service stacking conflict log.
+- Add project-specific examples to the system operator query log.
+- Add project-specific examples to the playbook next research questions.
+
+## Citation
+
+If this playbook supports research, teaching, or a project review, cite the
+machine-readable [CITATION.cff](CITATION.cff) metadata and identify the model
+assumptions, input profiles, and source material used.
+
+## License
+
+Released under the [MIT License](LICENSE).
+
+</details>
