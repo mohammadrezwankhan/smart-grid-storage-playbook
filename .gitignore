@@ -1,2 +1,14 @@
 __pycache__/
 *.py[cod]
+
+# Local environment files; templates must contain placeholders only.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.demo
+!.env.*.example
+!.env.*.sample
+!.env.*.template
+!.env.*.demo
