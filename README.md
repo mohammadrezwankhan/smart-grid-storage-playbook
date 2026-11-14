@@ -1,4 +1,4 @@
-![Smart Grid Storage Constraints Lab: original vector system illustration](assets/hero-25d.svg)
+![Smart Grid Storage Constraints Lab: original vector system illustration](assets/brand-uniformity/hero-25d.svg)
 
 The playbook pairs concept notes with executable storage and grid-support constraints. The browser begins with active-power balance before directing the learner to native energy, P–Q, ramp, reserve, and derating models.
 
@@ -23,7 +23,7 @@ The browser lab runs offline with no packages, accounts, or live data feeds. Its
 <details>
 <summary>System topology and model boundaries</summary>
 
-![Grid forming inverter](assets/svg-2.5d/diagrams/grid-forming-inverter.svg)
+![Grid forming inverter](assets/brand-uniformity/svg-2.5d/diagrams/grid-forming-inverter.svg)
 
 Reduced-order conceptual inverter path; not a validated hardware or grid-code design.
 
