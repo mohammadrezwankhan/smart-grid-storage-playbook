@@ -1,3 +1,9 @@
+**[Documentation handbook](docs/INDEX.md)** · [Reproduce the models](docs/developer/SETUP_AND_REPRODUCIBILITY.md) · [API and CLI catalogue](docs/developer/API_CLI_AND_INTERFACES.md) · [Verification ledger](docs/maintainer/VERIFICATION_EVIDENCE_LEDGER.md) · [12-month roadmap](ROADMAP.md)
+
+The documentation review on **2026-11-19** uses source `8bf7dd1d4cc1899dfc9fbb034f1fb3c35bd9763e`. Its isolated CPython 3.12.14 baseline passed **153 existing tests**, the eight native reference commands in CI, and the four-path portfolio validator. The selected browser lesson's eight checkpoints passed an isolated arithmetic check. These results establish the stated implementation checks; they do not establish field calibration, equipment ratings, grid-code approval or publication of a later documentation candidate.
+
+The existing model reference, concepts, checklists, historical source links and attribution below remain canonical. The handbook connects developer, scientific, maintainer and owner workflows without replacing the native equations or the browser teaching model.
+
 ![Smart Grid Storage Constraints Lab: original vector system illustration](assets/brand-uniformity/hero-25d.svg)
 
 The playbook pairs concept notes with executable storage and grid-support constraints. The browser begins with active-power balance before directing the learner to native energy, P–Q, ramp, reserve, and derating models.
