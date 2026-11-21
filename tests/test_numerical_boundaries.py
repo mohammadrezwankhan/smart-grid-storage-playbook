@@ -32,6 +32,15 @@ class NumericalBoundaryTests(unittest.TestCase):
         self.assertLessEqual(result.apparent_power_mva, rating)
         self.assertAlmostEqual(result.utilization, 1.0)
 
+    def test_overflowing_request_keeps_finite_norm_within_rating(self):
+        rating = 7.232511017820314e307
+        result = allocate_power(
+            1.208115048860611e308, -1.4254247105773341e308,
+            rating, PowerPriority.PROPORTIONAL,
+        )
+        self.assertLessEqual(result.apparent_power_mva, rating)
+        self.assertLessEqual(result.utilization, 1.0)
+
     def test_seeded_circular_allocations_respect_rating_and_priority(self):
         source = random.Random(219)
         for _ in range(500):

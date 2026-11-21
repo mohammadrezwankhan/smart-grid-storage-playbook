@@ -373,8 +373,8 @@ def allocate_power(
             reactive_mvar = reactive_direction * radius
 
     apparent_mva = math.hypot(active_mw, reactive_mvar)
-    # At the largest finite rating, rounding the components can overflow the norm.
-    while not math.isfinite(apparent_mva):
+    # Component rounding can leave the norm just outside the rating.
+    while apparent_mva > apparent_power_limit_mva:
         if selected_priority is not PowerPriority.ACTIVE:
             active_mw = math.nextafter(active_mw, 0.0)
         if selected_priority is not PowerPriority.REACTIVE:
