@@ -18,3 +18,21 @@ Use this page for separating market-service assumptions from technical grid-serv
 - Which service takes priority during constrained operation?
 - What evidence would satisfy the system operator or interconnection reviewer?
 - Which assumption should be revisited after the first operating event?
+
+## Product and settlement record
+
+Keep one record per market product and effective rule revision. Mark each
+unconfirmed input as an assumption and identify who can verify it.
+
+| Field | Evidence to retain |
+|---|---|
+| Product identity | Jurisdiction, market operator, product identifier, rule section, revision, effective date and source link |
+| Eligibility and delivery | Qualification, metering boundary, response deadline, ramp, minimum hold, repetition and recovery requirements |
+| Activation terms | Upward/downward direction, dispatch reference and baseline, allowed overlap or exclusion with other products |
+| Settlement | Capacity and utilization payment bases, currency, price and quantity units, settlement interval, adjustment and non-delivery rules |
+| Feasibility evidence | MW, MVAr and usable MWh reserved by interval, test scenario, delivered quantity and reason for any shortfall |
+| Record ownership | Owner, verification date, unresolved assumptions and rule changes requiring reassessment |
+
+Link the product record to the applicable
+[joint activation scenario](storage-dispatch-priority-matrix.md) before adding
+its capacity or utilization payment to a stacked-services estimate.
