@@ -79,9 +79,9 @@ def _retention_terms(
 ) -> tuple[float, float]:
     """Return exponential retention and constant-power influence in hours."""
 
-    if self_discharge_rate_per_hour == 0.0:
-        return 1.0, duration_hours
     exponent = -self_discharge_rate_per_hour * duration_hours
+    if exponent == 0.0:
+        return 1.0, duration_hours
     retention = math.exp(exponent)
     equivalent_hours = -math.expm1(exponent) / self_discharge_rate_per_hour
     return retention, equivalent_hours
@@ -101,6 +101,8 @@ def limit_active_power_by_energy(
         raise ValueError("duration_minutes must be finite and positive")
 
     duration_hours = duration_minutes / 60.0
+    if duration_hours == 0.0:
+        raise ValueError("duration_minutes is too small to represent in hours")
     initial_energy_mwh = state.initial_soc * state.energy_capacity_mwh
     minimum_energy_mwh = state.minimum_soc * state.energy_capacity_mwh
     maximum_energy_mwh = state.maximum_soc * state.energy_capacity_mwh
@@ -129,10 +131,14 @@ def limit_active_power_by_energy(
         )
     elif requested_active_mw < 0.0:
         available_storage_room_mwh = maximum_energy_mwh - loss_only_ending_energy_mwh
-        maximum_charge_mw = max(
-            0.0,
-            available_storage_room_mwh / (state.charge_efficiency * equivalent_hours),
-        )
+        charge_hours = state.charge_efficiency * equivalent_hours
+        if charge_hours == 0.0:
+            maximum_charge_mw = (
+                available_storage_room_mwh / state.charge_efficiency / equivalent_hours
+            )
+        else:
+            maximum_charge_mw = available_storage_room_mwh / charge_hours
+        maximum_charge_mw = max(0.0, maximum_charge_mw)
         delivered_active_mw = max(requested_active_mw, -maximum_charge_mw)
         dispatch_stored_energy_change_mwh = (
             -delivered_active_mw * duration_hours * state.charge_efficiency

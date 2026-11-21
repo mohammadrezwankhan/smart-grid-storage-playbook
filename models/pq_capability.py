@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -267,6 +268,14 @@ def _clip(value: float, limit: float) -> float:
     return max(-limit, min(limit, value))
 
 
+def _remaining_axis_limit(axis: float, rating: float) -> float:
+    magnitude = abs(axis)
+    if 1e-150 <= rating <= 1e150:
+        return math.sqrt((rating - magnitude) * (rating + magnitude))
+    # Normalize before multiplying when the squared rating may overflow or underflow.
+    return rating * math.sqrt(((rating - magnitude) / rating) * (1 + magnitude / rating))
+
+
 def _select_priority(priority: PowerPriority | str) -> PowerPriority:
     try:
         return PowerPriority(priority)
@@ -339,28 +348,45 @@ def allocate_power(
         reactive_mvar = requested_reactive_mvar
     elif selected_priority is PowerPriority.ACTIVE:
         active_mw = _clip(requested_active_mw, apparent_power_limit_mva)
-        reactive_limit = math.sqrt(max(0.0, apparent_power_limit_mva**2 - active_mw**2))
+        reactive_limit = _remaining_axis_limit(active_mw, apparent_power_limit_mva)
         reactive_mvar = _clip(requested_reactive_mvar, reactive_limit)
     elif selected_priority is PowerPriority.REACTIVE:
         reactive_mvar = _clip(
             requested_reactive_mvar,
             apparent_power_limit_mva,
         )
-        active_limit = math.sqrt(
-            max(0.0, apparent_power_limit_mva**2 - reactive_mvar**2)
-        )
+        active_limit = _remaining_axis_limit(reactive_mvar, apparent_power_limit_mva)
         active_mw = _clip(requested_active_mw, active_limit)
     else:
         scale = apparent_power_limit_mva / requested_mva
-        active_mw = requested_active_mw * scale
-        reactive_mvar = requested_reactive_mvar * scale
+        if scale >= sys.float_info.min:
+            active_mw = requested_active_mw * scale
+            reactive_mvar = requested_reactive_mvar * scale
+        else:
+            peak = max(abs(requested_active_mw), abs(requested_reactive_mvar))
+            active_direction = requested_active_mw / peak
+            reactive_direction = requested_reactive_mvar / peak
+            radius = apparent_power_limit_mva / math.hypot(
+                active_direction, reactive_direction
+            )
+            active_mw = active_direction * radius
+            reactive_mvar = reactive_direction * radius
+
+    apparent_mva = math.hypot(active_mw, reactive_mvar)
+    # Component rounding can leave the norm just outside the rating.
+    while apparent_mva > apparent_power_limit_mva:
+        if selected_priority is not PowerPriority.ACTIVE:
+            active_mw = math.nextafter(active_mw, 0.0)
+        if selected_priority is not PowerPriority.REACTIVE:
+            reactive_mvar = math.nextafter(reactive_mvar, 0.0)
+        apparent_mva = math.hypot(active_mw, reactive_mvar)
 
     return _build_result(
         requested_active_mw,
         requested_reactive_mvar,
         active_mw,
         reactive_mvar,
-        math.hypot(active_mw, reactive_mvar) / apparent_power_limit_mva,
+        apparent_mva / apparent_power_limit_mva,
         selected_priority,
     )
 
