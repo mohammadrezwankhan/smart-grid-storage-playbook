@@ -6,9 +6,9 @@ The native models read explicit local inputs/CSV files and perform reference cal
 
 ## Report safely
 
-For an ordinary reproducible defect that contains no sensitive information, use the repository's current issue interface with the source SHA, a minimal synthetic input, expected/actual behavior and relevant logs. For a vulnerability or private data exposure, first inspect the repository's current **Security** reporting options and obtain a private channel from the owner if one is available. Do not publish exploit details, tokens or proprietary data to a public issue while trying to establish that channel.
+For an ordinary reproducible defect that contains no sensitive information, use the repository's current issue interface with the source SHA, a minimal synthetic input, expected/actual behavior and relevant logs. For a vulnerability or private data exposure, open [GitHub Security Advisories](https://github.com/mohammadrezwankhan/smart-grid-storage-playbook/security/advisories) and select **Report a vulnerability**. If the option is unavailable, arrange a private channel with the owner. Do not publish exploit details, tokens or proprietary data to a public issue while trying to establish that channel.
 
-No dedicated security email, guaranteed response time, supported-version range or private-report feature is asserted here. Those need a current owner decision or visible platform setting.
+There is no published security email, guaranteed response time, or supported-version range.
 
 ## Information to exclude
 
